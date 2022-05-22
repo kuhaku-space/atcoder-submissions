@@ -22,7 +22,7 @@ jobs:
       - name: Run AtCoderSubmissions
         run: |
           cd src
-          python main.py
+          python3 main.py
 
       - name: Commit and Push
         env:

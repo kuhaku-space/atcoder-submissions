@@ -32,9 +32,7 @@ jobs:
           git config user.email "noreply@github.com"
           git checkout main
           git checkout -b auto-commit
-          git add .
-          git commit -m "[auto-commit] Add my codes"
-          git pull
+          git commit -a -m "[auto-commit] Add my codes"
           git checkout main
           git merge auto-commit
           git checkout develop

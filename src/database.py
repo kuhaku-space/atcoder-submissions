@@ -70,5 +70,5 @@ class Database:
                 self.insert_record(
                     save_table_name, columns_type, submission_data)
                 cnt += 1
-            if cnt >= 100:
+            if cnt >= 10:
                 break

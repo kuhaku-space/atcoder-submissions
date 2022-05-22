@@ -1,44 +1,44 @@
 name: Auto Update
 on:
-  workflow_dispatch
+  workflow_dispatch:
   schedule:
-    - cron: '00 23 * * *'
+    - cron: "00 23 * * *"
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses : actions/checkout@v3
-    - name : Setup Python
-      uses : actions/setup-python@v3
-      with :
-        python-version : "3.8"
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.8"
 
-    - name : Install Dependencies
-      run : |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name : Run AtCoderSubmissions
-      run : |
-        cd src
-        python main.py
+      - name: Run AtCoderSubmissions
+        run: |
+          cd src
+          python main.py
 
-    - name : Commit and Push
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run : |
-        git config user.name "GitHub"
-        git config user.email "noreply@github.com"
-        git checkout main
-        git checkout -b auto-commit
-        git add .
-        git commit -m "[auto-commit] Add my codes"
-        git pull
-        git checkout main
-        git merge auto-commit
-        git checkout develop
-        git merge auto-commit
-        git branch -d auto-commit
-        git push origin main
-        git push origin develop
+      - name: Commit and Push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "GitHub"
+          git config user.email "noreply@github.com"
+          git checkout main
+          git checkout -b auto-commit
+          git add .
+          git commit -m "[auto-commit] Add my codes"
+          git pull
+          git checkout main
+          git merge auto-commit
+          git checkout develop
+          git merge auto-commit
+          git branch -d auto-commit
+          git push origin main
+          git push origin develop

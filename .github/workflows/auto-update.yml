@@ -31,13 +31,6 @@ jobs:
           git config user.name "GitHub"
           git config user.email "noreply@github.com"
           git checkout main
-          git checkout -b auto-commit
           git add .
           git commit -a -m "[auto-commit] Add my codes"
-          git checkout main
-          git merge auto-commit --no-ff -m "Merge branch 'auto-commit' into develop"
-          git checkout develop
-          git merge auto-commit --no-ff -m "Merge branch 'auto-commit' into develop"
-          git branch -d auto-commit
           git push origin main
-          git push origin develop

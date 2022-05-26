@@ -15,7 +15,3 @@ This project is licensed under the [MIT License](https://github.com/kuhaku-space
 - [\[AtCoder\]提出されたコードをコマンドライン上から保存するツールを開発した話 - Qiita](https://qiita.com/moffy/items/f194d6d9503acec1d95f)
 
 - [kuriyan1204/AtCoder-AutoClone - Github](https://github.com/kuriyan1204/AtCoder-AutoClone)
-
-Copyright (c) 2022 Hiroto Kurita
-Released under the MIT license
-https://github.com/kuriyan1204/AtCoder-AutoClone/blob/main/LICENSE

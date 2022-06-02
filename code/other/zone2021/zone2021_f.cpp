@@ -1,0 +1,105 @@
+// clang-format off
+#include <bits/stdc++.h>
+using namespace std;
+using ll = int64_t;
+using ld = long double;
+using Pi = pair<int, int>;
+using Pl = pair<ll, ll>;
+using Vi = vector<int>;
+using Vl = vector<ll>;
+#define FOR(i, m, n) for(int i = (m); i < (n); ++i)
+#define FORR(i, m, n) for(int i = (m)-1; i >= (n); --i)
+#define rep(i, n) FOR(i, 0, n)
+#define repn(i, n) FOR(i, 1, n+1)
+#define repr(i, n) FORR(i, n, 0)
+#define repnr(i, n) FORR(i, n+1, 1)
+#define all(s) (s).begin(), (s).end()
+template <class T, class U>
+bool chmax(T &a, const U b) { return a < b ? a = b, true : false; }
+template <class T, class U>
+bool chmin(T &a, const U b) { return b < a ? a = b, true : false; }
+template <class T>
+istream &operator>>(istream &is, vector<T> &v) { for (T &i : v) is>>i; return is; }
+template <class T>
+ostream &operator<<(ostream &os, const vector<T> &v) {
+    for (auto it=v.begin(); it!=v.end(); ++it) { os<<(it==v.begin()?"":" ")<<*it; } return os;
+}
+template <class Head, class... Tail>
+void co(Head&& head, Tail&&... tail) {
+    if constexpr(sizeof...(tail)==0) cout<<head<<'\n'; else cout<<head<<' ',co(forward<Tail>(tail)...);
+}
+template <class Head, class... Tail>
+void ce(Head&& head, Tail&&... tail) {
+    if constexpr(sizeof...(tail)==0) cerr<<head<<'\n'; else cerr<<head<<' ',ce(forward<Tail>(tail)...);
+}
+template<typename T, typename... Args>
+auto make_vector(T x, int arg, Args ...args) {
+    if constexpr(sizeof...(args)==0) return vector<T>(arg, x); else return vector(arg,make_vector<T>(x, args...));
+}
+void sonic() { ios::sync_with_stdio(false); cin.tie(nullptr); }
+void setp(const int n) { cout << fixed << setprecision(n); }
+constexpr int64_t INF = 1000000000000000003;
+constexpr int Inf = 1000000003;
+constexpr int MOD = 1000000007;
+constexpr int MOD_N = 998244353;
+constexpr double EPS = 1e-7;
+const double PI = acos(-1);
+
+struct union_find {
+    vector<int> par;
+    vector<int> sz;
+
+    union_find(int _n) : par(_n), sz(_n, 1) { iota(par.begin(), par.end(), 0); }
+
+    int root(int x) {
+        if (par[x] == x) return x;
+        return par[x] = root(par[x]);
+    }
+
+    void unite(int x, int y) {
+        x = root(x), y = root(y);
+        if (x != y) {
+            if (sz[x] < sz[y]) swap(x, y);
+            par[y] = x;
+            sz[x] += sz[y];
+        }
+    }
+
+    int size(int x) { return sz[root(x)]; }
+
+    bool is_same(int x, int y) { return root(x) == root(y); }
+};
+
+// clang-format on
+
+int main(void) {
+    int n, m;
+    cin >> n >> m;
+    Vi a(m);
+    cin >> a;
+    unordered_set<int> st;
+    for (auto i : a) st.insert(i);
+
+    union_find uf(n);
+    vector<pair<int, int>> ans;
+    rep(i, n) {
+        if (st.find(i) != st.end())
+            continue;
+        if (uf.is_same(0, i))
+            continue;
+        rep(j, n) {
+            if (uf.is_same(j, j ^ i))
+                continue;
+            ans.emplace_back(j, j ^ i);
+            uf.unite(j, j ^ i);
+        }
+    }
+
+    if (uf.size(0) != n) {
+        co(-1);
+    } else {
+        for (auto p : ans) co(p.first, p.second);
+    }
+
+    return 0;
+}

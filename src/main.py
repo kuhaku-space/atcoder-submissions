@@ -1,3 +1,17 @@
+"""
+atcoder-submissions
+https://github.com/kuhaku-space/atcoder-submissions
+Copyright (c) 2022 Yuya Terashima
+Released under the MIT license
+https://github.com/kuhaku-space/atcoder-submissions/blob/main/LICENSE
+
+Includes kuriyan1204/AtCoder-AutoClone
+https://github.com/kuriyan1204/AtCoder-AutoClone
+Copyright (c) 2022 Hiroto Kurita
+Released under the MIT license
+https://github.com/kuriyan1204/AtCoder-AutoClone/blob/main/LICENSE
+"""
+
 from api import API
 from database import Database
 from config import Config

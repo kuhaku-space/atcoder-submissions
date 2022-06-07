@@ -1,0 +1,238 @@
+#line 1 "a.cpp"
+#define PROBLEM "https://judge.yosupo.jp/problem/range_kth_smallest"
+#line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
+#pragma GCC target("avx2,bmi2")
+#pragma GCC optimize("O3")
+#pragma GCC optimize("unroll-loops")
+#include <bits/stdc++.h>
+using namespace std;
+template <class T, class U>
+bool chmax(T &a, const U &b) {
+    return a < b ? a = b, true : false;
+}
+template <class T, class U>
+bool chmin(T &a, const U &b) {
+    return b < a ? a = b, true : false;
+}
+constexpr int64_t INF = 1000000000000000003;
+constexpr int Inf = 1000000003;
+constexpr int MOD = 1000000007;
+constexpr int MOD_N = 998244353;
+constexpr double EPS = 1e-7;
+constexpr double PI = M_PI;
+#line 2 "/home/kuhaku/home/github/algo/lib/binary_tree/scapegoat_tree.hpp"
+
+template <class T>
+class scapegoat_tree {
+  private:
+    struct Node {
+        using pointer = Node *;
+
+        T val;
+        unsigned int size;
+        pointer left, right;
+
+        Node(T _val) : val(_val), size(1), left(nullptr), right(nullptr) {}
+
+        static constexpr int get_size(pointer node) { return node ? node->size : 0; }
+
+        void eval() { this->size = 1 + Node::get_size(left) + Node::get_size(right); }
+    };
+
+  public:
+    using node_pointer = typename Node::pointer;
+
+    scapegoat_tree(const double _alpha = 2.0 / 3.0)
+        : root(nullptr), alpha(_alpha), log_val(-1.0 / std::log2(_alpha)), max_element_size(0) {}
+
+    constexpr bool empty() const { return !(this->root); }
+
+    constexpr int size() const { return this->empty() ? 0 : this->root->size; }
+
+    constexpr bool contains(T val) const {
+        node_pointer node = this->root;
+        while (node) {
+            if (node->val == val) return true;
+            node = (val < node->val ? node->left : node->right);
+        }
+        return false;
+    }
+
+    constexpr T index(int k) const {
+        assert(k < this->size());
+        node_pointer node = this->root;
+        while (node) {
+            if (Node::get_size(node->left) == k) {
+                break;
+            } else if (k < Node::get_size(node->left)) {
+                node = node->left;
+            } else {
+                k -= Node::get_size(node->left) + 1;
+                node = node->right;
+            }
+        }
+        return node->val;
+    }
+
+    void insert(T val) {
+        this->max_element_size = std::max(this->max_element_size, this->size() + 1);
+        bool balanced = true;
+        this->root = this->insert(this->root, val, 0, balanced);
+        assert(balanced);
+    }
+
+    void erase(T val) {
+        this->root = this->erase(this->root, val);
+        this->check();
+    }
+
+  private:
+    node_pointer root;
+    double alpha, log_val;
+    int max_element_size;
+
+    void subtree_dfs(node_pointer node, std::vector<node_pointer> &nodes) const {
+        if (node->left) this->subtree_dfs(node->left, nodes);
+        nodes.emplace_back(node);
+        if (node->right) this->subtree_dfs(node->right, nodes);
+    }
+    node_pointer build_pbbt_rec(int l, int r, const std::vector<node_pointer> &nodes) {
+        if (r - l == 0) {
+            return nullptr;
+        } else if (r - l == 1) {
+            node_pointer node = nodes[l];
+            node->left = node->right = nullptr;
+            node->eval();
+            return node;
+        }
+        int mid = (l + r) >> 1;
+        node_pointer node = nodes[mid];
+        node->left = this->build_pbbt_rec(l, mid, nodes);
+        node->right = this->build_pbbt_rec(mid + 1, r, nodes);
+        node->eval();
+        return node;
+    }
+    node_pointer build_pbbt(node_pointer node) {
+        if (!node) return nullptr;
+        std::vector<node_pointer> nodes;
+        this->subtree_dfs(node, nodes);
+        return this->build_pbbt_rec(0, nodes.size(), nodes);
+    }
+
+    node_pointer insert(node_pointer node, T val, int depth, bool &balanced) {
+        if (!node) {
+            balanced = (depth <= std::floor(log_val * std::log2(max_element_size)));
+            return new Node(val);
+        } else if (val < node->val) {
+            node->left = this->insert(node->left, val, depth + 1, balanced);
+            node->eval();
+            if (balanced || node->left->size <= alpha * node->size) return node;
+        } else {
+            node->right = this->insert(node->right, val, depth + 1, balanced);
+            node->eval();
+            if (balanced || node->right->size <= alpha * node->size) return node;
+        }
+        balanced = true;
+        return this->build_pbbt(node);
+    }
+
+    node_pointer join(node_pointer left, node_pointer right) {
+        if (!left || !right) {
+            return left ? left : right;
+        } else if (left->size < right->size) {
+            right->left = this->join(left, right->left);
+            right->eval();
+            return right;
+        } else {
+            left->right = this->join(left->right, right);
+            left->eval();
+            return left;
+        }
+    }
+
+    node_pointer erase(node_pointer node, T val) {
+        if (!node) {
+            return nullptr;
+        } else if (node->val == val) {
+            return this->join(node->left, node->right);
+        } else if (val < node->val) {
+            node->left = this->erase(node->left, val);
+            node->eval();
+            return node;
+        } else {
+            node->right = this->erase(node->right, val);
+            node->eval();
+            return node;
+        }
+    }
+
+    void check() {
+        if (this->size() >= alpha * max_element_size) return;
+        this->root = this->build_pbbt(this->root);
+        this->max_element_size = this->size();
+    }
+};
+#line 3 "/home/kuhaku/home/github/algo/lib/template/atcoder.hpp"
+using ll = int64_t;
+using ld = long double;
+#define FOR(i, m, n) for(int i = (m); i < int(n); ++i)
+#define FORR(i, m, n) for(int i = (m)-1; i >= int(n); --i)
+#define FORL(i, m, n) for(int64_t i = (m); i < int64_t(n); ++i)
+#define rep(i, n) FOR(i, 0, n)
+#define repn(i, n) FOR(i, 1, n+1)
+#define repr(i, n) FORR(i, n, 0)
+#define repnr(i, n) FORR(i, n+1, 1)
+#define all(s) (s).begin(), (s).end()
+template<class T, class U>
+std::istream &operator>>(std::istream &is, std::pair<T, U> &p) { is >> p.first >> p.second; return is; }
+template <class T>
+std::istream &operator>>(std::istream &is, std::vector<T> &v) { for (T &i : v) is>>i; return is; }
+template <class T, class U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
+    return os<<'('<<p.first<< ','<<p.second<<')';
+}
+template <class T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+    for (auto it=v.begin(); it!=v.end(); ++it) { os<<(it==v.begin()?"":" ")<<*it; } return os;
+}
+template <class Head, class... Tail>
+void co(Head&& head, Tail&&... tail) {
+    if constexpr(sizeof...(tail)==0) std::cout<<head<<'\n'; else std::cout<<head<<' ',co(forward<Tail>(tail)...);
+}
+template <class Head, class... Tail>
+void ce(Head&& head, Tail&&... tail) {
+    if constexpr(sizeof...(tail)==0) std::cerr<<head<<'\n'; else std::cerr<<head<<' ',ce(forward<Tail>(tail)...);
+}
+template<typename T, typename... Args>
+auto make_vector(T x, int arg, Args ...args) {
+    if constexpr(sizeof...(args)==0) return std::vector<T>(arg,x); else return std::vector(arg,make_vector<T>(x,args...));
+}
+void sonic() { std::ios::sync_with_stdio(false); std::cin.tie(nullptr); }
+void setp(const int n) { std::cout<<std::fixed<<std::setprecision(n); }
+void Yes(bool is_correct=true) { std::cout<<(is_correct?"Yes":"No")<<std::endl; }
+void No(bool is_not_correct=true) { Yes(!is_not_correct); }
+void YES(bool is_correct=true) { std::cout<<(is_correct?"YES":"NO")<<std::endl; }
+void NO(bool is_not_correct=true) { YES(!is_not_correct); }
+void Takahashi(bool is_correct=true) { std::cout<<(is_correct?"Takahashi":"Aoki")<<std::endl; }
+void Aoki(bool is_not_correct=true) { Takahashi(!is_not_correct); }
+#line 4 "a.cpp"
+
+int main(void) {
+    sonic();
+    int q;
+    cin >> q;
+    scapegoat_tree<int> st;
+    int u, v;
+    rep(i, q) {
+        cin >> u >> v;
+        if (u == 1) {
+            st.insert(v);
+        } else {
+            auto ans = st.index(v - 1);
+            co(ans);
+            st.erase(ans);
+        }
+    }
+
+    return 0;
+}

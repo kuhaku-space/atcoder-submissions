@@ -1,115 +1,313 @@
-/*
-confirm 0LL and 1LL
-confirm cornercases such as 0
-confirm times of cin < 10^6
-*/
+#line 1 "a.cpp"
+#define PROBLEM ""
+#line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
+// #pragma GCC target("sse4.2,avx2,bmi2")
+#pragma GCC optimize("O3")
+#pragma GCC optimize("unroll-loops")
 #include <bits/stdc++.h>
 using namespace std;
-using ll = long long;
+template <class T, class U>
+bool chmax(T &a, const U &b) {
+    return a < b ? a = b, true : false;
+}
+template <class T, class U>
+bool chmin(T &a, const U &b) {
+    return b < a ? a = b, true : false;
+}
+constexpr int64_t INF = 1000000000000000003;
+constexpr int Inf = 1000000003;
+constexpr int MOD = 1000000007;
+constexpr int MOD_N = 998244353;
+constexpr double EPS = 1e-7;
+constexpr double PI = M_PI;
+#line 3 "/home/kuhaku/home/github/algo/lib/math/modint.hpp"
+
+/**
+ * @brief modint
+ * @see https://github.com/ei1333/library/blob/master/math/combinatorics/mod-int.cpp
+ *
+ * @tparam mod 法
+ */
+template <int mod = MOD_N>
+struct ModInt {
+    static constexpr int get_mod() noexcept { return mod; }
+
+    constexpr ModInt() noexcept : x(0) {}
+    constexpr ModInt(int y) noexcept : x(y >= 0 ? y % mod : (mod - 1 - ~y % mod)) {}
+    constexpr ModInt(std::int64_t y) noexcept : x(y >= 0 ? y % mod : (mod - 1 - ~y % mod)) {}
+
+    constexpr ModInt &operator+=(const ModInt &rhs) noexcept {
+        if ((this->x += rhs.x) >= mod) this->x -= mod;
+        return *this;
+    }
+    constexpr ModInt &operator-=(const ModInt &rhs) noexcept {
+        if ((this->x += mod - rhs.x) >= mod) this->x -= mod;
+        return *this;
+    }
+    constexpr ModInt &operator*=(const ModInt &rhs) noexcept {
+        this->x = (int)(1LL * this->x * rhs.x % mod);
+        return *this;
+    }
+    constexpr ModInt &operator/=(const ModInt &rhs) noexcept {
+        *this *= rhs.inverse();
+        return *this;
+    }
+
+    constexpr ModInt &operator++() noexcept {
+        if ((++(this->x)) >= mod) this->x -= mod;
+        return *this;
+    }
+    constexpr ModInt operator++(int) noexcept {
+        ModInt tmp(*this);
+        this->operator++();
+        return tmp;
+    }
+    constexpr ModInt &operator--() noexcept {
+        if ((this->x += mod - 1) >= mod) this->x -= mod;
+        return *this;
+    }
+    constexpr ModInt operator--(int) noexcept {
+        ModInt tmp(*this);
+        this->operator--();
+        return tmp;
+    }
+
+    constexpr ModInt operator-() const noexcept { return ModInt(-this->x); }
+    constexpr ModInt operator+(const ModInt &rhs) const noexcept { return ModInt(*this) += rhs; }
+    constexpr ModInt operator-(const ModInt &rhs) const noexcept { return ModInt(*this) -= rhs; }
+    constexpr ModInt operator*(const ModInt &rhs) const noexcept { return ModInt(*this) *= rhs; }
+    constexpr ModInt operator/(const ModInt &rhs) const noexcept { return ModInt(*this) /= rhs; }
+
+    constexpr bool operator==(const ModInt &rhs) const noexcept { return this->x == rhs.x; }
+    constexpr bool operator!=(const ModInt &rhs) const noexcept { return this->x != rhs.x; }
+
+    explicit operator int() const noexcept { return x; }
+
+    constexpr ModInt inverse() const noexcept {
+        int a = x, b = mod, u = 1, v = 0, t;
+        while (b > 0) {
+            t = a / b;
+            swap(a -= t * b, b);
+            swap(u -= t * v, v);
+        }
+        return ModInt(u);
+    }
+
+    constexpr ModInt pow(std::int64_t n) const noexcept { return ModInt(*this).pow_self(n); }
+    constexpr ModInt &pow_self(std::int64_t n) noexcept {
+        ModInt res(1);
+        for (; n > 0; n >>= 1) {
+            if (n & 1) res *= *this;
+            *this *= *this;
+        }
+        *this = res;
+        return *this;
+    }
+
+    friend std::istream &operator>>(std::istream &is, ModInt &rhs) {
+        std::int64_t t;
+        is >> t;
+        rhs = ModInt<mod>(t);
+        return (is);
+    }
+    friend std::ostream &operator<<(std::ostream &os, const ModInt &rhs) { return os << rhs.x; }
+
+  private:
+    int x;
+};
+#line 2 "/home/kuhaku/home/github/algo/lib/math/prime_number.hpp"
+
+/**
+ * @brief 素数ライブラリ
+ */
+struct prime_number {
+    prime_number() { this->init(); }
+
+    void init() {
+        this->is_not_prime[0] = this->is_not_prime[1] = true;
+        for (int i = 2; i < _size; ++i) {
+            if (!this->is_not_prime[i]) {
+                this->data.emplace_back(i);
+                if ((int64_t)i * i >= _size) continue;
+                if (i == 2) {
+                    for (int j = i * i; j < _size; j += i) this->is_not_prime[j] = true;
+                } else {
+                    for (int j = i * i; j < _size; j += i << 1) this->is_not_prime[j] = true;
+                }
+            }
+        }
+    }
+
+    /**
+     * @brief 素数判定
+     *
+     * @param n
+     * @return bool
+     */
+    bool is_prime(int64_t n) const {
+        assert(n >= 0);
+        if (n < _size) return !this->is_not_prime[n];
+        for (auto i : this->data) {
+            if ((int64_t)i * i > n) break;
+            if (n % i == 0) return false;
+        }
+        return true;
+    }
+
+    std::vector<int> prime_numbers(int x) const {
+        std::vector<int> res;
+        for (auto i : this->data) {
+            if (i > x) break;
+            res.emplace_back(i);
+        }
+        return res;
+    }
+
+    /**
+     * @brief 素因数分解
+     *
+     * @tparam T
+     * @param x
+     * @return std::vector<pair<T, int>>
+     */
+    template <class T>
+    std::vector<pair<T, int>> prime_factorization(T x) const {
+        if (x == 1) return std::vector<pair<T, int>>(1, {1, 1});
+        std::vector<pair<T, int>> res;
+        for (auto i : this->data) {
+            int cnt = 0;
+            for (; x % i == 0; x /= i) ++cnt;
+            if (cnt) res.emplace_back(i, cnt);
+            if ((int64_t)i * i > x) break;
+        }
+        if (x != 1) res.emplace_back(x, 1);
+        return res;
+    }
+
+    /**
+     * @brief 約数列挙
+     *
+     * @tparam T
+     * @param x
+     * @return std::vector<T>
+     */
+    template <class T>
+    std::vector<T> divisors(T x) const {
+        if (x == 1) return std::vector<T>(1, 1);
+        auto v = this->prime_factorization(x);
+        std::vector<T> res;
+        res.emplace_back(1);
+        for (auto p : v) {
+            int n = res.size();
+            res.resize(n * (p.second + 1));
+            for (int i = 0; i < n * p.second; ++i) { res[n + i] = res[i] * p.first; }
+            for (int i = 1; i <= p.second; ++i) {
+                std::inplace_merge(res.begin(), res.begin() + n * i, res.begin() + n * (i + 1));
+            }
+        }
+        return res;
+    }
+
+    /**
+     * @brief 因数分解列挙
+     *
+     * @tparam T
+     * @param x
+     * @return std::vector<std::vector<T>>
+     */
+    template <class T>
+    std::vector<std::vector<T>> factorization(T x) const {
+        std::vector<std::vector<T>> res;
+        auto f = [&](auto self, std::vector<T> v, T a) -> void {
+            if (a == 1) res.emplace_back(v);
+            for (auto i : this->divisors(a)) {
+                if (i == 1 || (!v.empty() && v.back() > i)) continue;
+                v.emplace_back(i);
+                self(self, v, a / i);
+                v.pop_back();
+            }
+        };
+        f(f, std::vector<T>(), x);
+        return res;
+    }
+
+  private:
+    static constexpr int _size = 1 << 22;
+    std::bitset<_size> is_not_prime;
+    std::vector<int> data;
+};
+#line 3 "/home/kuhaku/home/github/algo/lib/template/atcoder.hpp"
+using ll = int64_t;
 using ld = long double;
-using P = pair<ll, ll>;
-using Pld = pair<ld, ld>;
-using Vec = vector<ll>;
-using VecP = vector<P>;
-using VecB = vector<bool>;
-using VecC = vector<char>;
-using VecD = vector<ld>;
-using VecS = vector<string>;
-using VecVec = vector<Vec>;
-using Tree = vector<VecP>;
-template <typename T>
-using Vec1 = vector<T>;
-template <typename T>
-using Vec2 = vector<Vec1<T> >;
-#define REP(i, m, n) for(ll (i) = (m); (i) < (n); ++(i))
-#define REPN(i, m, n) for(ll (i) = (m); (i) <= (n); ++(i))
-#define REPR(i, m, n) for(ll (i) = (m)-1; (i) >= (n); --(i))
-#define REPNR(i, m, n) for(ll (i) = (m); (i) >= (n); --(i))
-#define rep(i, n) REP(i, 0, n)
-#define repn(i, n) REPN(i, 1, n)
-#define repr(i, n) REPR(i, n, 0)
-#define repnr(i, n) REPNR(i, n, 1)
+#define FOR(i, m, n) for(int i = (m); i < int(n); ++i)
+#define FORR(i, m, n) for(int i = (m)-1; i >= int(n); --i)
+#define FORL(i, m, n) for(int64_t i = (m); i < int64_t(n); ++i)
+#define rep(i, n) FOR(i, 0, n)
+#define repn(i, n) FOR(i, 1, n+1)
+#define repr(i, n) FORR(i, n, 0)
+#define repnr(i, n) FORR(i, n+1, 1)
 #define all(s) (s).begin(), (s).end()
-#define pb push_back
-#define mp make_pair
-#define fs first
-#define sc second
-template <typename T>
-bool chmax(T &a, const T& b){if(a < b){a = b; return true;} return false;}
-template <typename T>
-bool chmin(T &a, const T& b){if(a > b){a = b; return true;} return false;}
-template <typename T>
-void co(const T n){cout << n << endl;}
-template <typename T>
-void cosp(const T n){cout << n << ' ';}
-void coVec(const Vec &v){for(ll i : v) cosp(i); cout << endl;}
-void sonic(){ios::sync_with_stdio(false); cin.tie(0); cout.tie(0);}
-void setp(const ll n){cout << fixed << setprecision(n);}
-const ll INF = 1e9+1;
-const ll LINF = 1e18+1;
-const ll MOD = 1e9+7;
-//const ll MOD = 998244353;
-const ld PI = acos(-1);
-const ld EPS = 1e-11;
+template<class T, class U>
+std::istream &operator>>(std::istream &is, std::pair<T, U> &p) { is >> p.first >> p.second; return is; }
+template <class T>
+std::istream &operator>>(std::istream &is, std::vector<T> &v) { for (T &i : v) is>>i; return is; }
+template <class T, class U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
+    return os<<'('<<p.first<< ','<<p.second<<')';
+}
+template <class T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+    for (auto it=v.begin(); it!=v.end(); ++it) { os<<(it==v.begin()?"":" ")<<*it; } return os;
+}
+template <class Head, class... Tail>
+void co(Head&& head, Tail&&... tail) {
+    if constexpr(sizeof...(tail)==0) std::cout<<head<<'\n'; else std::cout<<head<<' ',co(forward<Tail>(tail)...);
+}
+template <class Head, class... Tail>
+void ce(Head&& head, Tail&&... tail) {
+    if constexpr(sizeof...(tail)==0) std::cerr<<head<<'\n'; else std::cerr<<head<<' ',ce(forward<Tail>(tail)...);
+}
+template<typename T, typename... Args>
+auto make_vector(T x, int arg, Args ...args) {
+    if constexpr(sizeof...(args)==0) return std::vector<T>(arg,x); else return std::vector(arg,make_vector<T>(x,args...));
+}
+void sonic() { std::ios::sync_with_stdio(false); std::cin.tie(nullptr); }
+void setp(const int n) { std::cout<<std::fixed<<std::setprecision(n); }
+void Yes(bool is_correct=true) { std::cout<<(is_correct?"Yes":"No")<<std::endl; }
+void No(bool is_not_correct=true) { Yes(!is_not_correct); }
+void YES(bool is_correct=true) { std::cout<<(is_correct?"YES":"NO")<<std::endl; }
+void NO(bool is_not_correct=true) { YES(!is_not_correct); }
+void Takahashi(bool is_correct=true) { std::cout<<(is_correct?"Takahashi":"Aoki")<<std::endl; }
+void Aoki(bool is_not_correct=true) { Takahashi(!is_not_correct); }
+#line 5 "a.cpp"
 
-int main(void){
-	ll n;
-	cin >> n;
-	Vec a(n);
-	rep(i, n) cin >> a[i];
+using Mint = ModInt<MOD>;
+prime_number pn;
 
-	Vec pn;
-	pn.pb(2);
+int main(void) {
+    sonic();
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    cin >> a;
 
-	REP(num, 3, 1e4){
-		bool flg = true;
-		for(ll i : pn){
-			if(num%i == 0){
-				flg = false;
-				break;
-			}
-			if(i*i > num) break;
-		}
-		if(flg) pn.pb(num);
-	}
+    unordered_map<int, int> mp;
+    for (auto x : a) {
+        for (auto p : pn.prime_factorization(x)) {
+            chmax(mp[p.first], p.second);
+        }
+    }
 
-	unordered_map<ll, ll> ump;
- 
-	rep(i, n){
-		ll b = a[i];
-		for(ll j : pn){
-			if(j*j > b){
-				if(b != 1) chmax(ump[b], 1LL);
-				break;
-			}
-			if(b%j) continue;
-			ll cnt = 0;
-			while(b%j == 0){
-				cnt++;
-				b /= j;
-			}
-			chmax(ump[j], cnt);
-		}
-	}
+    Mint ans = 0;
+    Mint sum = 1;
+    for (auto p : mp) {
+        sum *= Mint(p.first).pow(p.second);
+    }
 
-	ll ans = 0;
-	rep(i, n){
-		ll b = a[i], sum = 1;
-		for(P j : ump){
-			ll cnt = 0;
-			while(b%j.fs == 0){
-				cnt++;
-				b /= j.fs;
-			}
-			rep(k, j.sc-cnt){
-				sum *= j.fs;
-				sum %= MOD;
-			}
-		}
-		ans += sum;
-		ans %= MOD;
-	}
-	co(ans);
+    for (auto x :a){
+        ans += sum / x;
+    }
+    co(ans);
 
-	return 0;
+    return 0;
 }

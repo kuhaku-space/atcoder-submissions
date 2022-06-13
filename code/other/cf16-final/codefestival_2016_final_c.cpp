@@ -95,18 +95,6 @@ struct union_find {
         return true;
     }
 
-    template <class F>
-    bool unite(int x, int y, F f) {
-        x = this->root(x), y = this->root(y);
-        if (x != y) {
-            if (this->data[x] > this->data[y]) swap(x, y);
-            this->data[x] += this->data[y];
-            this->data[y] = x;
-        }
-        f(x, y);
-        return x != y;
-    }
-
   private:
     std::vector<int> data;
 };
@@ -116,28 +104,23 @@ int main(void) {
     sonic();
     int n, m;
     cin >> n >> m;
-    union_find uf(n);
-    vector<int> cnt(n);
-    vector<int> edge(n);
-    auto f = [&](int x, int y) {
-        if (x != y)
-            edge[x] += edge[y];
-        ++edge[x];
-    };
-    rep(i, m) {
-        int x, y;
-        cin >> x >> y;
-        uf.unite(x - 1, y - 1, f);
-        ++cnt[x - 1];
-        ++cnt[y - 1];
-    }
-
-    bool flag = true;
+    union_find uf(m);
+    set<int> st;
     rep(i, n) {
-        flag &= uf.size(i) == edge[uf.root(i)] + 1;
-        flag &= cnt[i] <= 2;
+        int k;
+        cin >> k;
+        int x;
+        rep(j, k) {
+            int y;
+            cin >> y;
+            st.emplace(y);
+            if (!j)
+                x = uf.root(y - 1);
+            else
+                uf.unite(x, uf.root(y - 1));
+        }
     }
-    Yes(flag);
+    YES(uf.size(*(st.begin()) - 1) == (int)st.size());
 
     return 0;
 }

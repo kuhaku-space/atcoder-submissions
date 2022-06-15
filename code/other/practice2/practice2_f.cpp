@@ -1,76 +1,79 @@
+#pragma GCC optimize("O3")
 #include <bits/stdc++.h>
 #include <atcoder/all>
 using namespace std;
 using namespace atcoder;
-using ll = long long;
+using ll = int64_t;
 using ld = long double;
-using P = pair<ll, ll>;
-using Pld = pair<ld, ld>;
-using Vec = vector<ll>;
-using VecP = vector<P>;
-using VecB = vector<bool>;
-using VecC = vector<char>;
-using VecD = vector<ld>;
-using VecS = vector<string>;
-template <class T>
-using Vec2 = vector<vector<T>>;
-#define REP(i, m, n) for(ll i = (m); i < (n); ++i)
-#define REPN(i, m, n) for(ll i = (m); i <= (n); ++i)
-#define REPR(i, m, n) for(ll i = (m)-1; i >= (n); --i)
-#define REPNR(i, m, n) for(ll i = (m); i >= (n); --i)
-#define rep(i, n) REP(i, 0, n)
-#define repn(i, n) REPN(i, 1, n)
-#define repr(i, n) REPR(i, n, 0)
-#define repnr(i, n) REPNR(i, n, 1)
+#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
+#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
+#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
+#define rep(i, n) FOR(i, 0, n)
+#define repn(i, n) FOR(i, 1, n + 1)
+#define repr(i, n) FORR(i, n, 0)
+#define repnr(i, n) FORR(i, n + 1, 1)
 #define all(s) (s).begin(), (s).end()
-#define pb push_back
-#define fs first
-#define sc second
-template <class T1, class T2>
-bool chmax(T1 &a, const T2 b){if(a < b){a = b; return true;} return false;}
-template <class T1, class T2>
-bool chmin(T1 &a, const T2 b){if(a > b){a = b; return true;} return false;}
-ll pow2(const int n){return (1LL << n);}
-void co() { cout << endl; }
-template <class Head, class... Tail>
-void co(Head&& head, Tail&&... tail) {
-    cout << head << ' ';
-    co(forward<Tail>(tail)...);
+template <class T, class U>
+bool chmax(T &a, const U &b) {
+    return a < (T)b ? a = (T)b, true : false;
 }
-void ce() { cerr << endl; }
-template <class Head, class... Tail>
-void ce(Head&& head, Tail&&... tail) {
-    cerr << head << ' ';
-    ce(forward<Tail>(tail)...);
+template <class T, class U>
+bool chmin(T &a, const U &b) {
+    return (T)b < a ? a = (T)b, true : false;
 }
-void sonic(){ios::sync_with_stdio(false); cin.tie(0);}
-void setp(const int n){cout << fixed << setprecision(n);}
-constexpr int INF = 1e9+1;
-constexpr ll LINF = 1e18L+1;
-constexpr ll MOD = 1e9L+7;
-constexpr ll MOD_N = 998244353;
-constexpr ld EPS = 1e-11;
-const double PI = acos(-1);
+template <class T, class U>
+std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
+    is >> p.first >> p.second;
+    return is;
+}
+template <class T>
+std::istream &operator>>(std::istream &is, std::vector<T> &v) {
+    for (T &i : v) is >> i;
+    return is;
+}
+template <class T, class U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
+    return os << '(' << p.first << ',' << p.second << ')';
+}
+template <class T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+    for (auto it = v.begin(); it != v.end(); ++it) {
+        os << (it == v.begin() ? "" : " ") << *it;
+    }
+    return os;
+}
+template <class Head, class... Tail>
+void co(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0)
+        std::cout << head << '\n';
+    else
+        std::cout << head << ' ', co(forward<Tail>(tail)...);
+}
+void sonic() {
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+}
 
 using Mint = modint998244353;
 
-int main(void){
-    ll n, m;
+int main(void) {
+    sonic();
+    int n, m;
     cin >> n >> m;
     vector<Mint> a(n), b(m);
-    rep(i, n){
+    rep(i, n) {
         ll t;
         cin >> t;
         a[i] = t;
     }
-    rep(i, m){
+    rep(i, m) {
         ll t;
         cin >> t;
         b[i] = t;
     }
 
     auto ans = convolution(a, b);
-    rep(i, n + m - 1) cout << ans[i].val() << ' ';
+    for (auto i : ans) cout << i.val() << ' ';
     cout << endl;
 
     return 0;

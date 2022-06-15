@@ -1,132 +1,179 @@
+#line 1 "a.cpp"
+#define PROBLEM ""
+#line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
+#pragma GCC target("sse4.2,avx2,bmi2")
+#pragma GCC optimize("O3")
+#pragma GCC optimize("unroll-loops")
 #include <bits/stdc++.h>
 using namespace std;
-using ll = long long;
-using ld = long double;
-using P = pair<ll, ll>;
-using Pld = pair<ld, ld>;
-using Vec = vector<ll>;
-using VecP = vector<P>;
-using VecB = vector<bool>;
-using VecC = vector<char>;
-using VecD = vector<ld>;
-using VecS = vector<string>;
-using Graph = vector<VecP>;
-template <typename T>
-using Vec1 = vector<T>;
-template <typename T>
-using Vec2 = vector<Vec1<T> >;
-#define REP(i, m, n) for(ll i = (m); i < (n); ++i)
-#define REPN(i, m, n) for(ll i = (m); i <= (n); ++i)
-#define REPR(i, m, n) for(ll i = (m)-1; i >= (n); --i)
-#define REPNR(i, m, n) for(ll i = (m); i >= (n); --i)
-#define rep(i, n) REP(i, 0, n)
-#define repn(i, n) REPN(i, 1, n)
-#define repr(i, n) REPR(i, n, 0)
-#define repnr(i, n) REPNR(i, n, 1)
-#define all(s) (s).begin(), (s).end()
-#define pb push_back
-#define fs first
-#define sc second
-template <typename T>
-bool chmax(T &a, const T b){if(a < b){a = b; return true;} return false;}
-template <typename T>
-bool chmin(T &a, const T b){if(a > b){a = b; return true;} return false;}
-template <typename T>
-ll pow2(const T n){return (1LL << n);}
-template <typename T>
-void cosp(const T n){cout << n << ' ';}
-void co(void){cout << '\n';}
-template <typename T>
-void co(const T n){cout << n << '\n';}
-template <typename T1, typename T2>
-void co(pair<T1, T2> p){cout << p.fs << ' ' << p.sc << '\n';}
-template <typename T>
-void co(const Vec1<T> &v){for(T i : v) cosp(i); co();}
-template <typename T>
-void co(initializer_list<T> v){for(T i : v) cosp(i); co();}
-void ce(void){cerr << '\n';}
-template <typename T>
-void ce(const T n){cerr << n << '\n';}
-template <typename T>
-void cesp(const T n){cerr << n << ' ';}
-template <typename T>
-void ce(initializer_list<T> v){for(T i : v) cesp(i); ce();}
-void sonic(){ios::sync_with_stdio(false); cin.tie(0);}
-void setp(const ll n){cout << fixed << setprecision(n);}
-constexpr int INF = 1e9+1;
-constexpr ll LINF = 1e18+1;
-// constexpr ll MOD = 1e9+7;
-constexpr ll MOD = 998244353;
-constexpr ld EPS = 1e-11;
-const double PI = acos(-1);
+template <class T, class U>
+bool chmax(T &a, const U &b) {
+    return a < (T)b ? a = (T)b, true : false;
+}
+template <class T, class U>
+bool chmin(T &a, const U &b) {
+    return (T)b < a ? a = (T)b, true : false;
+}
+constexpr int64_t INF = 1000000000000000003;
+constexpr int Inf = 1000000003;
+constexpr int MOD = 1000000007;
+constexpr int MOD_N = 998244353;
+constexpr double EPS = 1e-7;
+constexpr double PI = M_PI;
+#line 2 "/home/kuhaku/home/github/algo/lib/fft/fft.hpp"
 
-using CP = complex<double>;
+// i * j = g^(x + y) としてFFTに帰着
+// verify : https://atcoder.jp/contests/agc047/tasks/agc047_c 21/02/24
 
-void fft(vector<CP> &a, bool inv) {
-	int64_t N = a.size();
+namespace FFT {
+
+void _fft(std::vector<std::complex<double>> &a, bool inv) {
+    int N = a.size();
     static bool is_first = true;
-	static vector<CP> vbw(30), vibw(30);
-	if (is_first) {
-		is_first = false;
-		for (size_t i = 0; i < 30; ++i) {
-			vbw[i] = polar(1.0,  2.0 * PI / (1 << (i + 1)));
-			vibw[i] = polar(1.0, -2.0 * PI / (1 << (i + 1)));
-		}
-	}
-	for (size_t i = 0, j = 1; j < N - 1; ++j) {
-		for (size_t k = N >> 1; k > (i ^= k); k >>= 1);
-		if (i > j) swap(a[i], a[j]);
-	}
-	for (size_t i = 0, t = 1; t < N; ++i, t <<= 1) {
-		CP bw = vbw[i];
-		if (inv) bw = vibw[i];
-		for (size_t i = 0; i < N; i += t * 2) {
-		    CP w(1.0);
-			for (size_t j = 0; j < t; ++j) {
-				int64_t l = i + j, r = i + j + t;
-				CP c = a[l], d = a[r] * w;
-				a[l] = c + d;
-				a[r] = c - d;
-				w *= bw;
-			}
-		}
-	}
-	if (inv) {
-		for (size_t i = 0; i < N; ++i) a[i] /= N;
-	}
+    static std::array<std::complex<double>, 30> vbw, vibw;
+    if (is_first) {
+        is_first = false;
+        for (int i = 0; i < 30; ++i) {
+            vbw[i] = std::polar(1.0, 2.0 * PI / (1 << (i + 1)));
+            vibw[i] = std::polar(1.0, -2.0 * PI / (1 << (i + 1)));
+        }
+    }
+    for (int i = 0, j = 1; j < N - 1; ++j) {
+        for (int k = N >> 1; k > (i ^= k); k >>= 1)
+            ;
+        if (i > j) swap(a[i], a[j]);
+    }
+    for (int k = 0, t = 1; t < N; ++k, t <<= 1) {
+        std::complex<double> bw = vbw[k];
+        if (inv) bw = vibw[k];
+        for (int i = 0; i < N; i += t * 2) {
+            std::complex<double> w(1.0);
+            for (int j = 0; j < t; ++j) {
+                int l = i + j, r = i + j + t;
+                std::complex<double> c = a[l], d = a[r] * w;
+                a[l] = c + d, a[r] = c - d;
+                w *= bw;
+            }
+        }
+    }
+    if (inv) {
+        for (int i = 0; i < N; ++i) a[i] /= N;
+    }
 }
 
-void conv(vector<CP> &a, vector<CP> &b) {
-    int64_t n = a.size() + b.size() - 1;
-    int64_t N = 1;
+template <class T>
+void convolution_self(std::vector<T> &a, const std::vector<T> &b) {
+    int n = a.size() + b.size() - 1;
+    int N = 1;
     while (N < n) N <<= 1;
 
-    a.resize(N);
-    b.resize(N);
+    std::vector<std::complex<double>> va(N), vb(N);
+    for (int i = 0; i < (int)a.size(); ++i) va[i] = std::complex<double>(a[i]);
+    for (int i = 0; i < (int)b.size(); ++i) vb[i] = std::complex<double>(b[i]);
+    _fft(va, false), _fft(vb, false);
+    for (int i = 0; i < N; ++i) va[i] *= vb[i];
+    _fft(va, true);
 
-    fft(a, false);
-    fft(b, false);
-
-    for (size_t i = 0; i < N; ++i) a[i] *= b[i];
-
-    fft(a, true);
     a.resize(n);
+    if constexpr (std::numeric_limits<T>::is_integer)
+        for (int i = 0; i < n; ++i) a[i] = T(va[i].real() + 0.5);
+    else
+        for (int i = 0; i < n; ++i) a[i] = va[i].real();
 }
 
-int main(void){
-	ll n;
-	cin >> n;
-	vector<CP> va(n + 1), vb(n + 1);
-	rep(i, n){
-		ll a, b;
-		cin >> a >> b;
-		va[i + 1] = CP(a);
-		vb[i + 1] = CP(b);
-	}
- 
-	conv(va, vb);
- 
-	repn(i, 2 * n) co(int(va[i].real() + 0.5));
+template <class T>
+std::vector<T> convolution(const std::vector<T> &a, const std::vector<T> &b) {
+    std::vector<T> res = a;
+    convolution_self(res, b);
+    return res;
+}
 
-	return 0;
+}  // namespace FFT
+#line 3 "/home/kuhaku/home/github/algo/lib/template/atcoder.hpp"
+using ll = int64_t;
+using ld = long double;
+#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
+#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
+#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
+#define rep(i, n) FOR (i, 0, n)
+#define repn(i, n) FOR (i, 1, n + 1)
+#define repr(i, n) FORR (i, n, 0)
+#define repnr(i, n) FORR (i, n + 1, 1)
+#define all(s) (s).begin(), (s).end()
+template <class T, class U>
+std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
+    is >> p.first >> p.second;
+    return is;
+}
+template <class T>
+std::istream &operator>>(std::istream &is, std::vector<T> &v) {
+    for (T &i : v) is >> i;
+    return is;
+}
+template <class T, class U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
+    return os << '(' << p.first << ',' << p.second << ')';
+}
+template <class T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+    for (auto it = v.begin(); it != v.end(); ++it) {
+        os << (it == v.begin() ? "" : " ") << *it;
+    }
+    return os;
+}
+template <class Head, class... Tail>
+void co(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
+    else std::cout << head << ' ', co(forward<Tail>(tail)...);
+}
+template <class Head, class... Tail>
+void ce(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
+    else std::cerr << head << ' ', ce(forward<Tail>(tail)...);
+}
+template <typename T, typename... Args>
+auto make_vector(T x, int arg, Args... args) {
+    if constexpr (sizeof...(args) == 0) return std::vector<T>(arg, x);
+    else return std::vector(arg, make_vector<T>(x, args...));
+}
+void sonic() {
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+}
+void setp(const int n) {
+    std::cout << std::fixed << std::setprecision(n);
+}
+void Yes(bool is_correct = true) {
+    std::cout << (is_correct ? "Yes" : "No") << std::endl;
+}
+void No(bool is_not_correct = true) {
+    Yes(!is_not_correct);
+}
+void YES(bool is_correct = true) {
+    std::cout << (is_correct ? "YES" : "NO") << std::endl;
+}
+void NO(bool is_not_correct = true) {
+    YES(!is_not_correct);
+}
+void Takahashi(bool is_correct = true) {
+    std::cout << (is_correct ? "Takahashi" : "Aoki") << std::endl;
+}
+void Aoki(bool is_not_correct = true) {
+    Takahashi(!is_not_correct);
+}
+#line 4 "a.cpp"
+
+int main(void) {
+    sonic();
+
+    int n;
+    cin >> n;
+    vector<int> a(n + 1), b(n + 1);
+    repn(i, n) cin >> a[i] >> b[i];
+
+    FFT::convolution_self(a, b);
+
+    repn(i, 2 * n) co(a[i]);
+
+    return 0;
 }

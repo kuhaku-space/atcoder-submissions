@@ -1,36 +1,126 @@
 #line 1 "a.cpp"
 #define PROBLEM ""
-#line 2 "/home/kuhaku/kuhaku/github/atcoder-lib/lib/template/template.hpp"
+#line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
+#pragma GCC target("sse4.2,avx2,bmi2")
+#pragma GCC optimize("O3")
+#pragma GCC optimize("unroll-loops")
 #include <bits/stdc++.h>
 using namespace std;
 template <class T, class U>
 bool chmax(T &a, const U &b) {
-    return a < b ? a = b, true : false;
+    return a < (T)b ? a = (T)b, true : false;
 }
 template <class T, class U>
 bool chmin(T &a, const U &b) {
-    return b < a ? a = b, true : false;
+    return (T)b < a ? a = (T)b, true : false;
 }
 constexpr int64_t INF = 1000000000000000003;
 constexpr int Inf = 1000000003;
 constexpr int MOD = 1000000007;
 constexpr int MOD_N = 998244353;
 constexpr double EPS = 1e-7;
-const double PI = acos(-1.0);
-#line 3 "/home/kuhaku/kuhaku/github/atcoder-lib/lib/graph/graph.hpp"
+constexpr double PI = M_PI;
+#line 3 "/home/kuhaku/home/github/algo/lib/template/atcoder.hpp"
+using ll = int64_t;
+using ld = long double;
+#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
+#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
+#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
+#define rep(i, n) FOR (i, 0, n)
+#define repn(i, n) FOR (i, 1, n + 1)
+#define repr(i, n) FORR (i, n, 0)
+#define repnr(i, n) FORR (i, n + 1, 1)
+#define all(s) (s).begin(), (s).end()
+template <class T, class U>
+std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
+    is >> p.first >> p.second;
+    return is;
+}
+template <class T>
+std::istream &operator>>(std::istream &is, std::vector<T> &v) {
+    for (T &i : v) is >> i;
+    return is;
+}
+template <class T, class U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
+    return os << '(' << p.first << ',' << p.second << ')';
+}
+template <class T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+    for (auto it = v.begin(); it != v.end(); ++it) {
+        os << (it == v.begin() ? "" : " ") << *it;
+    }
+    return os;
+}
+template <class Head, class... Tail>
+void co(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
+    else std::cout << head << ' ', co(forward<Tail>(tail)...);
+}
+template <class Head, class... Tail>
+void ce(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
+    else std::cerr << head << ' ', ce(forward<Tail>(tail)...);
+}
+template <typename T, typename... Args>
+auto make_vector(T x, int arg, Args... args) {
+    if constexpr (sizeof...(args) == 0) return std::vector<T>(arg, x);
+    else return std::vector(arg, make_vector<T>(x, args...));
+}
+void sonic() {
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+}
+void setp(const int n) {
+    std::cout << std::fixed << std::setprecision(n);
+}
+void Yes(bool is_correct = true) {
+    std::cout << (is_correct ? "Yes" : "No") << std::endl;
+}
+void No(bool is_not_correct = true) {
+    Yes(!is_not_correct);
+}
+void YES(bool is_correct = true) {
+    std::cout << (is_correct ? "YES" : "NO") << std::endl;
+}
+void NO(bool is_not_correct = true) {
+    YES(!is_not_correct);
+}
+void Takahashi(bool is_correct = true) {
+    std::cout << (is_correct ? "Takahashi" : "Aoki") << std::endl;
+}
+void Aoki(bool is_not_correct = true) {
+    Takahashi(!is_not_correct);
+}
+#line 3 "/home/kuhaku/home/github/algo/lib/graph/graph.hpp"
 
+/**
+ * @brief 重み付きグラフ
+ *
+ * @tparam T 辺の重みの型
+ */
 template <class T>
 struct Graph {
-    struct edge {
-        int from, to;
-        T dist;
+  private:
+    struct _edge {
+        constexpr _edge() : _from(), _to(), _weight() {}
+        constexpr _edge(int from, int to, T weight) : _from(from), _to(to), _weight(weight) {}
+        bool operator<(const _edge &rhs) const { return this->weight() < rhs.weight(); }
+        bool operator>(const _edge &rhs) const { return rhs < *this; }
 
-        bool operator<(const edge &rhs) const { return this->dist < rhs.dist; }
-        bool operator>(const edge &rhs) const { return rhs < *this; }
+        constexpr int from() const { return this->_from; }
+        constexpr int to() const { return this->_to; }
+        constexpr T weight() const { return this->_weight; }
+
+      private:
+        int _from, _to;
+        T _weight;
     };
-    vector<vector<edge>> edges;
 
-    Graph(int v) : edges(v) {}
+  public:
+    using edge_type = typename Graph<T>::_edge;
+
+    Graph(int v) : _size(v), edges(v) {}
 
     const auto &operator[](int i) const { return this->edges[i]; }
     auto &operator[](int i) { return this->edges[i]; }
@@ -38,41 +128,60 @@ struct Graph {
     auto begin() { return this->edges.begin(); }
     const auto end() const { return this->edges.end(); }
     auto end() { return this->edges.end(); }
-    auto size() const { return this->edges.size(); }
-    void add_edge(int a, int b, T d = T(1)) { this->edges[a].emplace_back(edge{a, b, d}); }
-    void add_edges(int a, int b, T d = T(1)) {
-        this->edges[a].emplace_back(edge{a, b, d});
-        this->edges[b].emplace_back(edge{b, a, d});
+    constexpr int size() const { return this->_size; }
+
+    void add_edge(const edge_type &e) { this->edges[e.from()].emplace_back(e); }
+    void add_edge(int from, int to, T weight = T(1)) {
+        this->edges[from].emplace_back(from, to, weight);
     }
-    void input_edge(int m, bool zero_based = false) {
+    void add_edges(int from, int to, T weight = T(1)) {
+        this->edges[from].emplace_back(from, to, weight);
+        this->edges[to].emplace_back(to, from, weight);
+    }
+
+    void input_edge(int m, int base = 1) {
         for (int i = 0; i < m; ++i) {
-            int a, b;
-            T d;
-            cin >> a >> b >> d;
-            if (zero_based)
-                this->add_edge(a, b, d);
-            else
-                this->add_edge(a - 1, b - 1, d);
+            int from, to;
+            T weight;
+            cin >> from >> to >> weight;
+            this->add_edge(from - base, to - base, weight);
         }
     }
-    void input_edges(int m, bool zero_based = false) {
+    void input_edges(int m, int base = 1) {
         for (int i = 0; i < m; ++i) {
-            int a, b;
-            T d;
-            cin >> a >> b >> d;
-            if (zero_based)
-                this->add_edges(a, b, d);
-            else
-                this->add_edges(a - 1, b - 1, d);
+            int from, to;
+            T weight;
+            cin >> from >> to >> weight;
+            this->add_edges(from - base, to - base, weight);
         }
     }
+
+  private:
+    int _size;
+    std::vector<std::vector<edge_type>> edges;
 };
 
 template <>
 struct Graph<void> {
-    vector<vector<int>> edges;
+  private:
+    struct _edge {
+        constexpr _edge() : _from(), _to() {}
+        constexpr _edge(int from, int to) : _from(from), _to(to) {}
 
-    Graph(int v) : edges(v) {}
+        constexpr int from() const { return this->_from; }
+        constexpr int to() const { return this->_to; }
+        constexpr int weight() const { return 1; }
+        bool operator<(const _edge &rhs) const { return false; }
+        bool operator>(const _edge &rhs) const { return rhs < *this; }
+
+      private:
+        int _from, _to;
+    };
+
+  public:
+    using edge_type = typename Graph<void>::_edge;
+
+    Graph(int v) : _size(v), edges(v) {}
 
     const auto &operator[](int i) const { return this->edges[i]; }
     auto &operator[](int i) { return this->edges[i]; }
@@ -80,166 +189,115 @@ struct Graph<void> {
     auto begin() { return this->edges.begin(); }
     const auto end() const { return this->edges.end(); }
     auto end() { return this->edges.end(); }
-    auto size() const { return this->edges.size(); }
-    void add_edge(int a, int b) { this->edges[a].emplace_back(b); }
-    void add_edges(int a, int b) {
-        this->edges[a].emplace_back(b);
-        this->edges[b].emplace_back(a);
+    constexpr int size() const { return this->_size; }
+
+    void add_edge(const edge_type &e) { this->edges[e.from()].emplace_back(e); }
+    void add_edge(int from, int to) { this->edges[from].emplace_back(from, to); }
+    void add_edges(int from, int to) {
+        this->edges[from].emplace_back(from, to);
+        this->edges[to].emplace_back(to, from);
     }
-    void input_edge(int m, bool zero_based = false) {
+
+    void input_edge(int m, int base = 1) {
         for (int i = 0; i < m; ++i) {
-            int a, b;
-            cin >> a >> b;
-            if (zero_based)
-                this->add_edge(a, b);
-            else
-                this->add_edge(a - 1, b - 1);
+            int from, to;
+            cin >> from >> to;
+            this->add_edge(from - base, to - base);
         }
     }
-    void input_edges(int m, bool zero_based = false) {
+    void input_edges(int m, int base = 1) {
         for (int i = 0; i < m; ++i) {
-            int a, b;
-            cin >> a >> b;
-            if (zero_based)
-                this->add_edges(a, b);
-            else
-                this->add_edges(a - 1, b - 1);
+            int from, to;
+            cin >> from >> to;
+            this->add_edges(from - base, to - base);
         }
     }
+
+  private:
+    int _size;
+    std::vector<std::vector<edge_type>> edges;
 };
-#line 3 "/home/kuhaku/kuhaku/github/atcoder-lib/lib/math/modint.hpp"
+#line 4 "/home/kuhaku/home/github/algo/lib/tree/rerooting.hpp"
 
 /**
- * @brief modint
- * @ref https://github.com/ei1333/library/blob/master/math/combinatorics/mod-int.cpp "参考"
+ * @brief 全方位木dp
+ * @see https://algo-logic.info/tree-dp/
  *
- * @tparam mod 法
+ * @tparam M モノイド
+ * @tparam T 辺の重みの型
  */
+template <class M, class T>
+struct ReRooting {
+  private:
+    using Value = typename M::value_type;
 
-template <int mod>
-struct ModInt {
-    int x;
+  public:
+    ReRooting(const Graph<T> &g) : graph(g), dp(g.size()), data(g.size()) { this->build(); }
 
-    constexpr ModInt() : x(0) {}
-    constexpr ModInt(int64_t y) noexcept : x(y >= 0 ? y % mod : (mod - 1 - ~y % mod)) {}
+    const auto &operator[](int i) const { return this->data[i]; }
+    auto &operator[](int i) { return this->data[i]; }
+    const auto begin() const { return this->data.begin(); }
+    auto begin() { return this->data.begin(); }
+    const auto end() const { return this->data.end(); }
+    auto end() { return this->data.end(); }
 
-    constexpr ModInt &operator+=(const ModInt &rhs) noexcept {
-        if ((x += rhs.x) >= mod) x -= mod;
-        return *this;
-    }
-    constexpr ModInt &operator-=(const ModInt &rhs) noexcept {
-        if ((x += mod - rhs.x) >= mod) x -= mod;
-        return *this;
-    }
-    constexpr ModInt &operator*=(const ModInt &rhs) noexcept {
-        x = (int)(1LL * x * rhs.x % mod);
-        return *this;
-    }
-    constexpr ModInt &operator/=(const ModInt &rhs) noexcept {
-        *this *= rhs.inverse();
-        return *this;
-    }
+  private:
+    Graph<T> graph;
+    std::vector<std::vector<Value>> dp;
+    std::vector<Value> data;
 
-    constexpr ModInt &operator++() noexcept {
-        if ((++x) >= mod) x -= mod;
-        return *this;
-    }
-    constexpr ModInt operator++(int) noexcept {
-        ModInt tmp(*this);
-        operator++();
-        return tmp;
-    }
-    constexpr ModInt &operator--() noexcept {
-        if ((x += mod - 1) >= mod) x -= mod;
-        return *this;
-    }
-    constexpr ModInt operator--(int) noexcept {
-        ModInt tmp(*this);
-        operator--();
-        return tmp;
+    void build() {
+        this->dfs(0);
+        this->bfs(0);
     }
 
-    constexpr ModInt operator-() const noexcept { return ModInt(-x); }
-    constexpr ModInt operator+(const ModInt &rhs) const noexcept { return ModInt(*this) += rhs; }
-    constexpr ModInt operator-(const ModInt &rhs) const noexcept { return ModInt(*this) -= rhs; }
-    constexpr ModInt operator*(const ModInt &rhs) const noexcept { return ModInt(*this) *= rhs; }
-    constexpr ModInt operator/(const ModInt &rhs) const noexcept { return ModInt(*this) /= rhs; }
-
-    constexpr bool operator==(const ModInt &rhs) const noexcept { return x == rhs.x; }
-    constexpr bool operator!=(const ModInt &rhs) const noexcept { return x != rhs.x; }
-
-    explicit operator int() const noexcept { return x; }
-
-    constexpr ModInt inverse() const noexcept {
-        int a = x, b = mod, u = 1, v = 0, t;
-        while (b > 0) {
-            t = a / b;
-            swap(a -= t * b, b);
-            swap(u -= t * v, v);
+    Value dfs(int v, int p = -1) {
+        Value res = M::id;
+        int deg = graph[v].size();
+        dp[v] = std::vector<Value>(deg, M::id);
+        for (int i = 0; i < deg; ++i) {
+            auto e = graph[v][i];
+            if (e.to() == p) continue;
+            dp[v][i] = M::f(dfs(e.to(), v), e.weight());
+            res = M::op(res, dp[v][i]);
         }
-        return ModInt(u);
+        return M::g(res, v);
     }
-
-    constexpr ModInt pow(int64_t n) const noexcept { return ModInt(*this).pow_self(n); }
-    constexpr ModInt &pow_self(int64_t n) noexcept {
-        ModInt res(1);
-        for (; n > 0; n >>= 1) {
-            if (n & 1) res *= *this;
-            *this *= *this;
+    void bfs(int v, int p = -1, Value dp_p = M::id) {
+        int deg = graph[v].size();
+        std::vector<Value> dp_r(deg + 1, M::id);
+        for (int i = deg - 1; i >= 0; --i) {
+            auto e = graph[v][i];
+            if (e.to() == p) dp[v][i] = M::f(dp_p, e.weight());
+            dp_r[i] = M::op(dp[v][i], dp_r[i + 1]);
         }
-        *this = res;
-        return *this;
+        Value dp_l = M::id;
+        for (int i = 0; i < deg; ++i) {
+            int u = graph[v][i].to();
+            if (u != p) this->bfs(u, v, M::g(M::op(dp_l, dp_r[i + 1]), u));
+            dp_l = M::op(dp_l, dp[v][i]);
+        }
+        data[v] = M::g(dp_l, v);
     }
-
-    friend istream &operator>>(istream &is, ModInt &rhs) {
-        int64_t t;
-        is >> t;
-        rhs = ModInt<mod>(t);
-        return (is);
-    }
-    friend ostream &operator<<(ostream &os, const ModInt &rhs) { return os << rhs.x; }
-
-    int to_int() const noexcept { return x; }
-
-    static int get_mod() noexcept { return mod; }
 };
-#line 2 "/home/kuhaku/kuhaku/github/atcoder-lib/lib/template/atcoder.hpp"
-#pragma GCC target("avx")
-#pragma GCC optimize("O3")
-#pragma GCC optimize("unroll-loops")
-#line 6 "/home/kuhaku/kuhaku/github/atcoder-lib/lib/template/atcoder.hpp"
-using ll = int64_t;
-using ld = long double;
-#define FOR(i, m, n) for(int i = (m); i < (n); ++i)
-#define FORR(i, m, n) for(int i = (m)-1; i >= (n); --i)
-#define rep(i, n) FOR(i, 0, n)
-#define repn(i, n) FOR(i, 1, n+1)
-#define repr(i, n) FORR(i, n, 0)
-#define repnr(i, n) FORR(i, n+1, 1)
-#define all(s) (s).begin(), (s).end()
-template <class T>
-istream &operator>>(istream &is, vector<T> &v) { for (T &i : v) is>>i; return is; }
-template <class T>
-ostream &operator<<(ostream &os, const vector<T> &v) {
-    for (auto it=v.begin(); it!=v.end(); ++it) { os<<(it==v.begin()?"":" ")<<*it; } return os;
-}
-template <class Head, class... Tail>
-void co(Head&& head, Tail&&... tail) {
-    if constexpr(sizeof...(tail)==0) cout<<head<<'\n'; else cout<<head<<' ',co(forward<Tail>(tail)...);
-}
-template <class Head, class... Tail>
-void ce(Head&& head, Tail&&... tail) {
-    if constexpr(sizeof...(tail)==0) cerr<<head<<'\n'; else cerr<<head<<' ',ce(forward<Tail>(tail)...);
-}
-template<typename T, typename... Args>
-auto make_vector(T x, int arg, Args ...args) {
-    if constexpr(sizeof...(args)==0) return vector<T>(arg, x); else return vector(arg,make_vector<T>(x, args...));
-}
-void sonic() { ios::sync_with_stdio(false); cin.tie(nullptr); }
-void setp(const int n) { cout << fixed << setprecision(n); }
-#line 5 "a.cpp"
+#line 4 "a.cpp"
 
-using Mint = ModInt<MOD_N>;
+struct Monoid {
+    using value_type = int;
+    static constexpr value_type id = 1;
+    static value_type op(const value_type &lhs, const value_type &rhs) {
+        return lhs & rhs;
+    }
+
+    template <class T>
+    static constexpr value_type f(const value_type &v, T u) {
+        return !v;
+    }
+
+    static value_type g(const value_type &v, int u) {
+        return v;
+    }
+};
 
 int main(void) {
     sonic();
@@ -247,58 +305,11 @@ int main(void) {
     cin >> n;
     Graph<void> g(n);
     g.input_edges(n - 1);
+    ReRooting<Monoid, void> re(g);
 
-    vector<int> par_pos(n);
-    vector<vector<bool>> v(n);
-
-    auto dfs = [&g, &v, &par_pos](auto &&self, int idx, int par) -> bool {
-        v[idx].resize(g[idx].size());
-        int cnt = 0;
-        bool res = true;
-        for (auto i : g[idx]) {
-            if (i != par) {
-                v[idx][cnt] = self(self, i, idx);
-                res = res & v[idx][cnt];
-            } else {
-                par_pos[idx] = cnt;
-            }
-            ++cnt;
-        }
-        return !res;
-    };
-    dfs(dfs, 0, -1);
-
-    vector<bool> tmp(n), ans(n);
-    queue<pair<int, int>> que;
-    que.emplace(0, -1);
-    while (!que.empty()) {
-        auto [idx, par] = que.front();
-        que.pop();
-        if (par != -1)
-            v[idx][par_pos[idx]] = !tmp[idx];
-        int sz = g[idx].size();
-        vector<bool> r(sz, true);
-        repr(i, sz - 1) {
-            r[i] = r[i + 1] & v[idx][i + 1];
-        }
-        int cnt = 0;
-        bool l = true;
-        for (auto i : g[idx]) {
-            if (i != par) {
-                tmp[i] = l & r[cnt];
-                que.emplace(i, idx);
-            }
-            l = l & v[idx][cnt];
-            ++cnt;
-        }
-        ans[idx] = !l;
-    }
-
-    int cnt = 0;
-    rep(i, n) {
-        cnt += !ans[i];
-    }
-    co(cnt);
+    int ans = 0;
+    rep(i, n) ans += re[i];
+    co(ans);
 
     return 0;
 }

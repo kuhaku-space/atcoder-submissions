@@ -1,149 +1,177 @@
+#line 1 "a.cpp"
+#define PROBLEM ""
+#line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
+#pragma GCC target("sse4.2,avx2,bmi2")
+#pragma GCC optimize("O3")
+#pragma GCC optimize("unroll-loops")
 #include <bits/stdc++.h>
 using namespace std;
-using ll = long long;
-using ld = long double;
-using P = pair<ll, ll>;
-using Pld = pair<ld, ld>;
-using Vec = vector<ll>;
-using VecP = vector<P>;
-using VecB = vector<bool>;
-using VecC = vector<char>;
-using VecD = vector<ld>;
-using VecS = vector<string>;
-using Graph = vector<VecP>;
-template <typename T>
-using Vec1 = vector<T>;
-template <typename T>
-using Vec2 = vector<Vec1<T> >;
-#define REP(i, m, n) for(ll i = (m); i < (n); ++i)
-#define REPN(i, m, n) for(ll i = (m); i <= (n); ++i)
-#define REPR(i, m, n) for(ll i = (m)-1; i >= (n); --i)
-#define REPNR(i, m, n) for(ll i = (m); i >= (n); --i)
-#define rep(i, n) REP(i, 0, n)
-#define repn(i, n) REPN(i, 1, n)
-#define repr(i, n) REPR(i, n, 0)
-#define repnr(i, n) REPNR(i, n, 1)
-#define all(s) (s).begin(), (s).end()
-#define pb push_back
-#define fs first
-#define sc second
-template <typename T>
-bool chmax(T &a, const T b){if(a < b){a = b; return true;} return false;}
-template <typename T>
-bool chmin(T &a, const T b){if(a > b){a = b; return true;} return false;}
-template <typename T>
-ll pow2(const T n){return (1LL << n);}
-template <typename T>
-void cosp(const T n){cout << n << ' ';}
-void co(void){cout << '\n';}
-template <typename T>
-void co(const T n){cout << n << '\n';}
-template <typename T1, typename T2>
-void co(pair<T1, T2> p){cout << p.fs << ' ' << p.sc << '\n';}
-template <typename T>
-void co(const Vec1<T> &v){for(T i : v) cosp(i); co();}
-template <typename T>
-void co(initializer_list<T> v){for(T i : v) cosp(i); co();}
-template <typename T>
-void ce(const T n){cerr << n << endl;}
-void sonic(){ios::sync_with_stdio(false); cin.tie(0);}
-void setp(const ll n){cout << fixed << setprecision(n);}
-constexpr int INF = 1e9+1;
-constexpr ll LINF = 1e18+1;
-constexpr ll MOD = 1e9+7;
-// constexpr ll MOD = 998244353;
-constexpr ld EPS = 1e-11;
-const double PI = acos(-1);
-
-template <typename T>
-struct BIT{
-	ll N;
-	Vec1<T> data;
-
-	BIT(ll n){
-		init(n);
-	}
-
-	void init(ll n){
-		N = 1;
-		while(N < n) N <<= 1;
-		data.assign(N, 0);
-	}
-
-	void build(Vec1<T> v){
-		init(N);
-		rep(i, v.size()) add(i, v[i]);
-	}
-
-	void add(ll k, T x){
-		k++;
-		while(k <= N){
-			data[k] += x;
-			k += k & -k;
-		}
-	}
-
-	T sum(ll k){
-		k++;
-		T res = 0;
-		while(k){
-			res += data[k];
-			k -= k & -k;
-		}
-		return res;
-	}
-	T sum(ll a, ll b){return sum(b - 1) - sum(a - 1);}
-
-	T at(ll k){return sum(k) - sum(k - 1);}
-
-	
-	T lower_bound(T k){
-		ll l = 0, r = N;
-		while(r - l >= 2){
-			ll m = (l + r) / 2;
-			if(sum(m) >= k) r = m;
-			else l = m;
-		}
-		return r;
-	}
-};
-
-bool asc(pair<P, ll> &a, pair<P, ll> &b) {
-	if (a.fs.sc == b.fs.sc) return a.fs.fs < b.fs.fs;
-	return a.fs.sc < b.fs.sc;
+template <class T, class U>
+bool chmax(T &a, const U &b) {
+    return a < (T)b ? a = (T)b, true : false;
 }
+template <class T, class U>
+bool chmin(T &a, const U &b) {
+    return (T)b < a ? a = (T)b, true : false;
+}
+constexpr int64_t INF = 1000000000000000003;
+constexpr int Inf = 1000000003;
+constexpr int MOD = 1000000007;
+constexpr int MOD_N = 998244353;
+constexpr double EPS = 1e-7;
+constexpr double PI = M_PI;
+#line 2 "/home/kuhaku/home/github/algo/lib/algorithm/Mo.hpp"
 
-int main(void){
-	ll n, q;
-	cin >> n >> q;
-	Vec c(n);
-	rep(i, n) cin >> c[i];
-	vector<pair<P, ll>> p(q);
-	rep(i, q) cin >> p[i].fs.fs >> p[i].fs.sc;
-	rep(i, q) p[i].sc = i;
+template <class F, class G>
+struct Mo {
+    Mo(int n, const F &f, const G &g)
+        : left(), right(), order(), _size(n), _nl(0), _nr(0), _ptr(0), add(f), del(g) {}
 
-	sort(all(p), asc);
+    void insert(int l, int r) {
+        this->left.emplace_back(l);
+        this->right.emplace_back(r);
+    }
 
-	Vec ans(q);
-	BIT<ll> bit(n);
-	unordered_map<ll, ll> ump;
-	ll cnt = 0;
-	rep(i, n) {
-		if (ump.find(c[i]) == ump.end()) {
-			bit.add(i, 1);
-			ump[c[i]] = i;
-		} else {
-			bit.add(ump[c[i]], -1);
-			bit.add(i, 1);
-			ump[c[i]] = i;
-		}
+    void build() {
+        int q = this->left.size();
+        int width = max(1, int(this->_size / sqrt(q)));
+        this->order.resize(q);
+        std::iota(this->order.begin(), this->order.end(), 0);
+        std::sort(this->order.begin(), this->order.end(), [&](int a, int b) {
+            if (this->left[a] / width != this->left[b] / width)
+                return this->left[a] < this->left[b];
+            if (this->left[a] / width % 2 == 0) return this->right[a] < this->right[b];
+            return this->right[a] > this->right[b];
+        });
+    }
 
-		while (cnt < q && p[cnt].fs.sc == i + 1) {
-			ans[p[cnt].sc] = bit.sum(p[cnt].fs.fs - 1, p[cnt].fs.sc);
-			cnt++;
-		}
-	}
-	rep(i, q) co(ans[i]);
+    int process() {
+        if (this->_ptr == (int)this->order.size()) return -1;
+        const auto id = this->order[this->_ptr];
+        while (this->_nl > this->left[id]) this->add(--this->_nl);
+        while (this->_nr < this->right[id]) this->add(this->_nr++);
+        while (this->_nl < this->left[id]) this->del(this->_nl++);
+        while (this->_nr > this->right[id]) this->del(--this->_nr);
+        return this->order[this->_ptr++];
+    }
 
-	return 0;
+  private:
+    std::vector<int> left, right, order;
+    int _size, _nl, _nr, _ptr;
+    const F add;
+    const G del;
+};
+#line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
+#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
+#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
+#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
+#define rep(i, n) FOR (i, 0, n)
+#define repn(i, n) FOR (i, 1, n + 1)
+#define repr(i, n) FORR (i, n, 0)
+#define repnr(i, n) FORR (i, n + 1, 1)
+#define all(s) (s).begin(), (s).end()
+#line 3 "/home/kuhaku/home/github/algo/lib/template/sonic.hpp"
+struct Sonic {
+    Sonic() {
+        std::ios::sync_with_stdio(false);
+        std::cin.tie(nullptr);
+    }
+
+    constexpr void operator()() const {}
+} sonic;
+#line 5 "/home/kuhaku/home/github/algo/lib/template/atcoder.hpp"
+using ll = int64_t;
+using ld = long double;
+template <class T, class U>
+std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
+    return is >> p.first >> p.second;
+}
+template <class T>
+std::istream &operator>>(std::istream &is, std::vector<T> &v) {
+    for (T &i : v) is >> i;
+    return is;
+}
+template <class T, class U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
+    return os << '(' << p.first << ',' << p.second << ')';
+}
+template <class T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+    for (auto it = v.begin(); it != v.end(); ++it) {
+        os << (it == v.begin() ? "" : " ") << *it;
+    }
+    return os;
+}
+template <class Head, class... Tail>
+void co(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
+    else std::cout << head << ' ', co(std::forward<Tail>(tail)...);
+}
+template <class Head, class... Tail>
+void ce(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
+    else std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
+}
+template <typename T, typename... Args>
+auto make_vector(T x, int arg, Args... args) {
+    if constexpr (sizeof...(args) == 0) return std::vector<T>(arg, x);
+    else return std::vector(arg, make_vector<T>(x, args...));
+}
+void setp(int n) {
+    std::cout << std::fixed << std::setprecision(n);
+}
+void Yes(bool is_correct = true) {
+    std::cout << (is_correct ? "Yes" : "No") << '\n';
+}
+void No(bool is_not_correct = true) {
+    Yes(!is_not_correct);
+}
+void YES(bool is_correct = true) {
+    std::cout << (is_correct ? "YES" : "NO") << '\n';
+}
+void NO(bool is_not_correct = true) {
+    YES(!is_not_correct);
+}
+void Takahashi(bool is_correct = true) {
+    std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n';
+}
+void Aoki(bool is_not_correct = true) {
+    Takahashi(!is_not_correct);
+}
+#line 4 "a.cpp"
+
+int main(void) {
+    int n, q;
+    cin >> n >> q;
+    vector<int> c(n);
+    cin >> c;
+    rep(i, n) c[i]--;
+    vector<int> s(n);
+    int sum = 0;
+    auto add = [&](int x) {
+        if (!s[c[x]])
+            ++sum;
+        s[c[x]]++;
+    };
+    auto del = [&](int x) {
+        --s[c[x]];
+        if (!s[c[x]])
+            --sum;
+    };
+    Mo mo(n, add, del);
+    rep(i, q) {
+        int l, r;
+        cin >> l >> r;
+        mo.insert(l - 1, r);
+    }
+    mo.build();
+
+    vector<int> ans(q);
+    rep(i, q) {
+        int x = mo.process();
+        ans[x] = sum;
+    }
+    rep(i, q) co(ans[i]);
+
+    return 0;
 }

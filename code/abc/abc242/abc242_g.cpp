@@ -22,44 +22,53 @@ constexpr double EPS = 1e-7;
 constexpr double PI = M_PI;
 #line 2 "/home/kuhaku/home/github/algo/lib/algorithm/Mo.hpp"
 
+/**
+ * @brief Mo's algorithm
+ * @see https://ei1333.hateblo.jp/entry/2017/09/11/211011
+ * @see https://snuke.hatenablog.com/entry/2016/07/01/000000
+ *
+ * @tparam F
+ * @tparam G
+ */
 template <class F, class G>
 struct Mo {
     Mo(int n, const F &f, const G &g)
-        : left(), right(), order(), _size(n), _nl(0), _nr(0), _ptr(0), add(f), del(g) {}
+        : left(), right(), order(), _size(n), _nl(0), _nr(0), _ptr(0), _add(f), _del(g) {}
 
-    void insert(int l, int r) {
+    void add(int l, int r) {
         this->left.emplace_back(l);
         this->right.emplace_back(r);
     }
+    void emplace(int l, int r) { return this->add(l, r); }
+    void insert(int l, int r) { return this->add(l, r); }
 
     void build() {
         int q = this->left.size();
         int width = max(1, int(this->_size / sqrt(q)));
         this->order.resize(q);
         std::iota(this->order.begin(), this->order.end(), 0);
-        std::sort(this->order.begin(), this->order.end(), [&](int a, int b) {
+        std::sort(this->order.begin(), this->order.end(), [&](int a, int b) -> bool {
             if (this->left[a] / width != this->left[b] / width)
                 return this->left[a] < this->left[b];
-            if (this->left[a] / width % 2 == 0) return this->right[a] < this->right[b];
-            return this->right[a] > this->right[b];
+            return (this->left[a] / width % 2) ^ (this->right[a] < this->right[b]);
         });
     }
 
     int process() {
         if (this->_ptr == (int)this->order.size()) return -1;
         const auto id = this->order[this->_ptr];
-        while (this->_nl > this->left[id]) this->add(--this->_nl);
-        while (this->_nr < this->right[id]) this->add(this->_nr++);
-        while (this->_nl < this->left[id]) this->del(this->_nl++);
-        while (this->_nr > this->right[id]) this->del(--this->_nr);
+        while (this->_nl > this->left[id]) this->_add(--this->_nl);
+        while (this->_nr < this->right[id]) this->_add(this->_nr++);
+        while (this->_nl < this->left[id]) this->_del(this->_nl++);
+        while (this->_nr > this->right[id]) this->_del(--this->_nr);
         return this->order[this->_ptr++];
     }
 
   private:
     std::vector<int> left, right, order;
     int _size, _nl, _nr, _ptr;
-    const F &add;
-    const G &del;
+    const F &_add;
+    const G &_del;
 };
 #line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
 #define FOR(i, m, n) for (int i = (m); i < int(n); ++i)

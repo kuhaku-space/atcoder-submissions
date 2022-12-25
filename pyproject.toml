@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "atcoder-submissions"
+version = "0.1.0"
+description = ""
+authors = ["kuhaku-space <kuhakuspace2000@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/kuhaku-space/atcoder-submissions"
+readme = "README.md"
+packages = [{include = "atcoder_submissions"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+bs4 = "^0.0.1"
+datetime = "^4.9"
+requests = "^2.28.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

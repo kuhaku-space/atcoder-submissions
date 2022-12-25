@@ -13,16 +13,20 @@ https://github.com/kuriyan1204/AtCoder-AutoClone/blob/main/LICENSE
 """
 
 from api import API
-from database import Database
 from config import Config
+from database import Database
 
-CONFIG_PATH = '../config/config.json'
-DATABASE_NAME = '../database/submission.db'
-SUBMISSION_TABLE_NAME = 'atcoder'
-CODE_TABLE_NAME = 'code'
-API_URL = 'https://kenkoooo.com/atcoder/atcoder-api/v3/user/submissions?'
-COLUMN_TYPE = {'id': 'integer primary key', 'problem_id': 'text',
-               'contest_id': 'text', 'result': 'text', }
+CONFIG_PATH = "../config/config.json"
+DATABASE_NAME = "../database/submission.db"
+SUBMISSION_TABLE_NAME = "atcoder"
+CODE_TABLE_NAME = "code"
+API_URL = "https://kenkoooo.com/atcoder/atcoder-api/v3/user/submissions?"
+COLUMN_TYPE = {
+    "id": "integer primary key",
+    "problem_id": "text",
+    "contest_id": "text",
+    "result": "text",
+}
 
 
 def main():
@@ -34,11 +38,10 @@ def main():
     conf = Config(CONFIG_PATH)
     submissions = api.get_submissions(conf)
     database.update_database(SUBMISSION_TABLE_NAME, COLUMN_TYPE, submissions)
-    database.save_code(SUBMISSION_TABLE_NAME,
-                       CODE_TABLE_NAME, COLUMN_TYPE, submissions)
+    database.save_code(SUBMISSION_TABLE_NAME, CODE_TABLE_NAME, COLUMN_TYPE, submissions)
 
     database.close_database()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

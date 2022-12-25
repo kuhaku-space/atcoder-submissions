@@ -1,6 +1,8 @@
 import json
 import time
+
 import requests
+
 from config import Config
 
 
@@ -20,5 +22,5 @@ class API:
                 break
             all_submissions += submissions
             for submission_data in submissions:
-                unix_time = max(unix_time, submission_data['epoch_second']+1)
+                unix_time = max(unix_time, submission_data["epoch_second"] + 1)
         return all_submissions

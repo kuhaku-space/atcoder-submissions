@@ -30,22 +30,18 @@ constexpr double PI = M_PI;
  */
 template <class Container>
 std::vector<int> z_algorithm(const Container &s) {
-    int n = s.size();
-    std::vector<int> res(n);
-    res[0] = n;
-    int i = 1, j = 0;
-    while (i < n) {
-        while (i + j < n && s[j] == s[i + j]) ++j;
-        res[i] = j;
-        if (!j) {
-            ++i;
-            continue;
-        }
-        int k = 1;
-        while (i + k < n && k + res[k] < j) res[i + k] = res[k], ++k;
-        i += k, j -= k;
+    int n = int(s.size());
+    if (n == 0) return {};
+    std::vector<int> z(n);
+    z[0] = 0;
+    for (int i = 1, j = 0; i < n; i++) {
+        int &k = z[i];
+        k = (j + z[j] <= i) ? 0 : std::min(j + z[j] - i, z[i - j]);
+        while (i + k < n && s[k] == s[i + k]) k++;
+        if (j + z[j] < i + z[i]) j = i;
     }
-    return res;
+    z[0] = n;
+    return z;
 }
 #line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
 #define FOR(i, m, n) for (int i = (m); i < int(n); ++i)

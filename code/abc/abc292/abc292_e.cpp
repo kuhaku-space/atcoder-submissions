@@ -20,83 +20,6 @@ constexpr int MOD = 1000000007;
 constexpr int MOD_N = 998244353;
 constexpr double EPS = 1e-7;
 constexpr double PI = M_PI;
-#line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
-#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
-#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
-#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
-#define rep(i, n) FOR (i, 0, n)
-#define repn(i, n) FOR (i, 1, n + 1)
-#define repr(i, n) FORR (i, n, 0)
-#define repnr(i, n) FORR (i, n + 1, 1)
-#define all(s) (s).begin(), (s).end()
-#line 3 "/home/kuhaku/home/github/algo/lib/template/sonic.hpp"
-struct Sonic {
-    Sonic() {
-        std::ios::sync_with_stdio(false);
-        std::cin.tie(nullptr);
-    }
-
-    constexpr void operator()() const {}
-} sonic;
-#line 5 "/home/kuhaku/home/github/algo/lib/template/atcoder.hpp"
-using ll = int64_t;
-using ld = long double;
-template <class T, class U>
-std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
-    return is >> p.first >> p.second;
-}
-template <class T>
-std::istream &operator>>(std::istream &is, std::vector<T> &v) {
-    for (T &i : v) is >> i;
-    return is;
-}
-template <class T, class U>
-std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
-    return os << '(' << p.first << ',' << p.second << ')';
-}
-template <class T>
-std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
-    for (auto it = v.begin(); it != v.end(); ++it) {
-        os << (it == v.begin() ? "" : " ") << *it;
-    }
-    return os;
-}
-template <class Head, class... Tail>
-void co(Head &&head, Tail &&...tail) {
-    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
-    else std::cout << head << ' ', co(std::forward<Tail>(tail)...);
-}
-template <class Head, class... Tail>
-void ce(Head &&head, Tail &&...tail) {
-    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
-    else std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
-}
-template <typename T, typename... Args>
-auto make_vector(T x, int arg, Args... args) {
-    if constexpr (sizeof...(args) == 0) return std::vector<T>(arg, x);
-    else return std::vector(arg, make_vector<T>(x, args...));
-}
-void setp(int n) {
-    std::cout << std::fixed << std::setprecision(n);
-}
-void Yes(bool is_correct = true) {
-    std::cout << (is_correct ? "Yes" : "No") << '\n';
-}
-void No(bool is_not_correct = true) {
-    Yes(!is_not_correct);
-}
-void YES(bool is_correct = true) {
-    std::cout << (is_correct ? "YES" : "NO") << '\n';
-}
-void NO(bool is_not_correct = true) {
-    YES(!is_not_correct);
-}
-void Takahashi(bool is_correct = true) {
-    std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n';
-}
-void Aoki(bool is_not_correct = true) {
-    Takahashi(!is_not_correct);
-}
 #line 3 "/home/kuhaku/home/github/algo/lib/graph/graph.hpp"
 
 /**
@@ -222,58 +145,108 @@ struct Graph<void> {
     int _size;
     std::vector<std::vector<edge_type>> edges;
 };
-#line 3 "/home/kuhaku/home/github/algo/lib/tree/centroid_decomposition.hpp"
+#line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
+#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
+#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
+#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
+#define rep(i, n) FOR (i, 0, n)
+#define repn(i, n) FOR (i, 1, n + 1)
+#define repr(i, n) FORR (i, n, 0)
+#define repnr(i, n) FORR (i, n + 1, 1)
+#define all(s) (s).begin(), (s).end()
+#line 3 "/home/kuhaku/home/github/algo/lib/template/sonic.hpp"
+struct Sonic {
+    Sonic() {
+        std::ios::sync_with_stdio(false);
+        std::cin.tie(nullptr);
+    }
 
+    constexpr void operator()() const {}
+} sonic;
+#line 5 "/home/kuhaku/home/github/algo/lib/template/atcoder.hpp"
+using ll = int64_t;
+using ld = long double;
+template <class T, class U>
+std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
+    return is >> p.first >> p.second;
+}
 template <class T>
-std::vector<int> centroid_decomposition(const Graph<T> &g) {
-    int n = g.size();
-    std::vector<int> par(n, -2), size(n), size_par(n, -2);
-    auto dfs = [&](auto self, int x, int p) -> int {
-        if (size_par[x] == p) return size[x];
-        int sum = 1;
-        for (auto e : g[x]) {
-            if (par[e.to()] != -2 || e.to() == p) continue;
-            sum += self(self, e.to(), x);
-        }
-        size_par[x] = p;
-        return size[x] = sum;
-    };
-    auto build = [&](auto self, int x, int p) -> void {
-        int sz = dfs(dfs, x, p);
-        bool is_centroid = false;
-        while (!is_centroid) {
-            is_centroid = true;
-            for (auto e : g[x]) {
-                if (size[e.to()] > size[x] || size[e.to()] * 2 <= sz) continue;
-                x = e.to();
-                is_centroid = false;
-                break;
-            }
-        }
-        par[x] = p;
-        for (auto e : g[x]) {
-            if (par[e.to()] != -2) continue;
-            self(self, e.to(), x);
-        }
-    };
-
-    build(build, 0, -1);
-
-    return par;
+std::istream &operator>>(std::istream &is, std::vector<T> &v) {
+    for (T &i : v) is >> i;
+    return is;
+}
+template <class T, class U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
+    return os << '(' << p.first << ',' << p.second << ')';
+}
+template <class T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+    for (auto it = v.begin(); it != v.end(); ++it) {
+        os << (it == v.begin() ? "" : " ") << *it;
+    }
+    return os;
+}
+template <class Head, class... Tail>
+void co(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
+    else std::cout << head << ' ', co(std::forward<Tail>(tail)...);
+}
+template <class Head, class... Tail>
+void ce(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
+    else std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
+}
+template <typename T, typename... Args>
+auto make_vector(T x, int arg, Args... args) {
+    if constexpr (sizeof...(args) == 0) return std::vector<T>(arg, x);
+    else return std::vector(arg, make_vector<T>(x, args...));
+}
+void setp(int n) {
+    std::cout << std::fixed << std::setprecision(n);
+}
+void Yes(bool is_correct = true) {
+    std::cout << (is_correct ? "Yes" : "No") << '\n';
+}
+void No(bool is_not_correct = true) {
+    Yes(!is_not_correct);
+}
+void YES(bool is_correct = true) {
+    std::cout << (is_correct ? "YES" : "NO") << '\n';
+}
+void NO(bool is_not_correct = true) {
+    YES(!is_not_correct);
+}
+void Takahashi(bool is_correct = true) {
+    std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n';
+}
+void Aoki(bool is_not_correct = true) {
+    Takahashi(!is_not_correct);
 }
 #line 4 "a.cpp"
 
 int main(void) {
-    int n;
-    cin >> n;
+    int n, m;
+    cin >> n >> m;
     Graph<void> g(n);
-    g.input_edges(n - 1);
-    auto ans = centroid_decomposition(g);
-    for_each(all(ans), [](auto &x) {
-        if (x != -1)
-            ++x;
-    });
-    co(ans);
+    g.input_edge(m);
+
+    bitset<2000> seen;
+    auto dfs = [&](auto self, int idx) {
+        if (seen[idx])
+            return;
+        seen.set(idx);
+        for (auto e : g[idx]) {
+            self(self, e.to());
+        }
+    };
+
+    ll ans = 0;
+    rep (i, n) {
+        dfs(dfs, i);
+        ans += seen.count();
+        seen.reset();
+    }
+    co(ans - m - n);
 
     return 0;
 }

@@ -30,18 +30,22 @@ constexpr double PI = M_PI;
  */
 template <int mod = MOD_N>
 struct ModInt {
-    static constexpr int get_mod() noexcept { return mod; }
+    static constexpr int get_mod() noexcept {
+        return mod;
+    }
 
     constexpr ModInt() noexcept : x(0) {}
     constexpr ModInt(int y) noexcept : x(y >= 0 ? y % mod : (mod - 1 - ~y % mod)) {}
     constexpr ModInt(std::int64_t y) noexcept : x(y >= 0 ? y % mod : (mod - 1 - ~y % mod)) {}
 
     constexpr ModInt &operator+=(const ModInt &rhs) noexcept {
-        if ((this->x += rhs.x) >= mod) this->x -= mod;
+        if ((this->x += rhs.x) >= mod)
+            this->x -= mod;
         return *this;
     }
     constexpr ModInt &operator-=(const ModInt &rhs) noexcept {
-        if ((this->x += mod - rhs.x) >= mod) this->x -= mod;
+        if ((this->x += mod - rhs.x) >= mod)
+            this->x -= mod;
         return *this;
     }
     constexpr ModInt &operator*=(const ModInt &rhs) noexcept {
@@ -54,7 +58,8 @@ struct ModInt {
     }
 
     constexpr ModInt &operator++() noexcept {
-        if ((++(this->x)) >= mod) this->x -= mod;
+        if ((++(this->x)) >= mod)
+            this->x -= mod;
         return *this;
     }
     constexpr ModInt operator++(int) noexcept {
@@ -63,7 +68,8 @@ struct ModInt {
         return tmp;
     }
     constexpr ModInt &operator--() noexcept {
-        if ((this->x += mod - 1) >= mod) this->x -= mod;
+        if ((this->x += mod - 1) >= mod)
+            this->x -= mod;
         return *this;
     }
     constexpr ModInt operator--(int) noexcept {
@@ -72,16 +78,32 @@ struct ModInt {
         return tmp;
     }
 
-    constexpr ModInt operator-() const noexcept { return ModInt(-this->x); }
-    constexpr ModInt operator+(const ModInt &rhs) const noexcept { return ModInt(*this) += rhs; }
-    constexpr ModInt operator-(const ModInt &rhs) const noexcept { return ModInt(*this) -= rhs; }
-    constexpr ModInt operator*(const ModInt &rhs) const noexcept { return ModInt(*this) *= rhs; }
-    constexpr ModInt operator/(const ModInt &rhs) const noexcept { return ModInt(*this) /= rhs; }
+    constexpr ModInt operator-() const noexcept {
+        return ModInt(-this->x);
+    }
+    constexpr ModInt operator+(const ModInt &rhs) const noexcept {
+        return ModInt(*this) += rhs;
+    }
+    constexpr ModInt operator-(const ModInt &rhs) const noexcept {
+        return ModInt(*this) -= rhs;
+    }
+    constexpr ModInt operator*(const ModInt &rhs) const noexcept {
+        return ModInt(*this) *= rhs;
+    }
+    constexpr ModInt operator/(const ModInt &rhs) const noexcept {
+        return ModInt(*this) /= rhs;
+    }
 
-    constexpr bool operator==(const ModInt &rhs) const noexcept { return this->x == rhs.x; }
-    constexpr bool operator!=(const ModInt &rhs) const noexcept { return this->x != rhs.x; }
+    constexpr bool operator==(const ModInt &rhs) const noexcept {
+        return this->x == rhs.x;
+    }
+    constexpr bool operator!=(const ModInt &rhs) const noexcept {
+        return this->x != rhs.x;
+    }
 
-    explicit operator int() const noexcept { return x; }
+    explicit operator int() const noexcept {
+        return x;
+    }
 
     constexpr ModInt inverse() const noexcept {
         int a = x, b = mod, u = 1, v = 0, t;
@@ -93,11 +115,14 @@ struct ModInt {
         return ModInt(u);
     }
 
-    constexpr ModInt pow(std::int64_t n) const noexcept { return ModInt(*this).pow_self(n); }
+    constexpr ModInt pow(std::int64_t n) const noexcept {
+        return ModInt(*this).pow_self(n);
+    }
     constexpr ModInt &pow_self(std::int64_t n) noexcept {
         ModInt res(1);
         for (; n > 0; n >>= 1) {
-            if (n & 1) res *= *this;
+            if (n & 1)
+                res *= *this;
             *this *= *this;
         }
         *this = res;
@@ -110,7 +135,9 @@ struct ModInt {
         rhs = ModInt<mod>(t);
         return (is);
     }
-    friend std::ostream &operator<<(std::ostream &os, const ModInt &rhs) { return os << rhs.x; }
+    friend std::ostream &operator<<(std::ostream &os, const ModInt &rhs) {
+        return os << rhs.x;
+    }
 
   private:
     int x;
@@ -124,7 +151,8 @@ struct Combination {
     Combination() : _fact(), _finv() {}
 
     mint operator()(int n, int k) {
-        if (n < k || n < 0 || k < 0) return 0;
+        if (n < k || n < 0 || k < 0)
+            return 0;
         this->_init(n);
         return this->_fact[n] * this->_finv[k] * this->_finv[n - k];
     }
@@ -142,8 +170,10 @@ struct Combination {
     }
 
     mint naive(int n, int k) const {
-        if (n < k || n < 0 || k < 0) return 0;
-        if (n - k < k) k = n - k;
+        if (n < k || n < 0 || k < 0)
+            return 0;
+        if (n - k < k)
+            k = n - k;
         mint res = 1;
         for (int i = 0; i < k; ++i) {
             res *= n - i;
@@ -153,17 +183,22 @@ struct Combination {
     }
 
     mint lucas(int n, int k) {
-        if (n < k || n < 0 || k < 0) return 0;
-        if (n - k < k) k = n - k;
+        if (n < k || n < 0 || k < 0)
+            return 0;
+        if (n - k < k)
+            k = n - k;
         static std::vector<std::vector<mint>> v;
         if (v.empty()) {
             v = std::vector<std::vector<mint>>(mod, std::vector<mint>(mod));
             for (int i = 0; i < mod; ++i) v[i][0] = 1;
             for (int i = 0; i < mod; ++i) {
                 for (int j = 1; j < mod; ++j) {
-                    if (i < j) v[i][j] = 0;
-                    else if (i - j < j) v[i][j] = v[i][i - j];
-                    else v[i][j] = v[i][j - 1] * mint(i + 1 - j) / mint(j);
+                    if (i < j)
+                        v[i][j] = 0;
+                    else if (i - j < j)
+                        v[i][j] = v[i][i - j];
+                    else
+                        v[i][j] = v[i][j - 1] * mint(i + 1 - j) / mint(j);
                 }
             }
         }
@@ -176,7 +211,8 @@ struct Combination {
     }
 
     mint permu(int n, int k) {
-        if (n < k || n < 0 || k < 0) return 0;
+        if (n < k || n < 0 || k < 0)
+            return 0;
         this->_init(n);
         return this->_fact[n] * this->_finv[n - k];
     }
@@ -185,12 +221,15 @@ struct Combination {
     std::vector<mint> _fact, _finv;
 
     void _init(int n) {
-        if ((int)this->_fact.size() > n) return;
+        if ((int)this->_fact.size() > n)
+            return;
         int m = this->_fact.size();
         this->_fact.resize(n + 1);
         for (int i = m; i <= n; ++i) {
-            if (i == 0) this->_fact[i] = 1;
-            else this->_fact[i] = this->_fact[i - 1] * i;
+            if (i == 0)
+                this->_fact[i] = 1;
+            else
+                this->_fact[i] = this->_fact[i - 1] * i;
         }
         this->_finv.resize(n + 1);
         this->_finv[n] = this->_fact[n].inverse();
@@ -240,18 +279,24 @@ std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
 }
 template <class Head, class... Tail>
 void co(Head &&head, Tail &&...tail) {
-    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
-    else std::cout << head << ' ', co(std::forward<Tail>(tail)...);
+    if constexpr (sizeof...(tail) == 0)
+        std::cout << head << '\n';
+    else
+        std::cout << head << ' ', co(std::forward<Tail>(tail)...);
 }
 template <class Head, class... Tail>
 void ce(Head &&head, Tail &&...tail) {
-    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
-    else std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
+    if constexpr (sizeof...(tail) == 0)
+        std::cerr << head << '\n';
+    else
+        std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
 }
 template <typename T, typename... Args>
 auto make_vector(T x, int arg, Args... args) {
-    if constexpr (sizeof...(args) == 0) return std::vector<T>(arg, x);
-    else return std::vector(arg, make_vector<T>(x, args...));
+    if constexpr (sizeof...(args) == 0)
+        return std::vector<T>(arg, x);
+    else
+        return std::vector(arg, make_vector<T>(x, args...));
 }
 void setp(int n) {
     std::cout << std::fixed << std::setprecision(n);
@@ -284,12 +329,16 @@ int main(void) {
     cin >> n >> k;
     vector<int> a(n);
     cin >> a;
-    set<int> st(all(a));
+    vector<bool> used(n + k + 10);
+    rep (i, n) {
+        if (a[i] < n + k + 10)
+            used[a[i]] = true;
+    }
 
     int cnt = 0;
     Mint ans = 0;
     rep (i, n + k + 10) {
-        if (st.count(i)) {
+        if (used[i]) {
             ans += combi(i + k - cnt - 1, i);
             continue;
         }
@@ -297,7 +346,6 @@ int main(void) {
         if (k < cnt)
             break;
         ans += combi(i + k - cnt, i);
-        ce(i, ans);
     }
     co(ans);
     return 0;

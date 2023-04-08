@@ -103,7 +103,7 @@ void solve() {
     ll x;
     cin >> x;
     set<ll> ans;
-    FOR (d, 2, 1000) {
+    FOR (d, 2, 2000) {
         ll y = x;
         while (y) {
             if (y % d >= 2)
@@ -114,7 +114,7 @@ void solve() {
             ans.emplace(d);
     }
 
-    FOR (bit, 2, 100) {
+    FOR (bit, 2, 64) {
         ll l = 2, r = x + 1;
         while (r - l > 1) {
             ll m = (l + r) / 2;

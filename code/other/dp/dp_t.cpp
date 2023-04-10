@@ -197,22 +197,27 @@ void Aoki(bool is_not_correct = true) {
 using Mint = ModInt<MOD>;
 
 int main(void) {
-    int n, m;
-    cin >> n >> m;
-    vector<int> a(n);
-    cin >> a;
-    int s = accumulate(all(a), 0);
-
-    if (s > m) {
-        co(0);
-        return 0;
+    int n;
+    cin >> n;
+    string s;
+    cin >> s;
+    deque<Mint> dp(1, 1);
+    dp[0] = 1;
+    rep (i, n - 1) {
+        if (s[i] == '<') {
+            dp.emplace_front(0);
+            rep (j, i + 1) {
+                dp[j + 1] += dp[j];
+            }
+        } else {
+            dp.emplace_back(0);
+            repr (j, i + 1) {
+                dp[j] += dp[j + 1];
+            }
+        }
     }
 
-    Mint ans = 1;
-    rep (i, s + n) {
-        ans *= m + n - i;
-        ans /= i + 1;
-    }
+    Mint ans = accumulate(all(dp), Mint());
     co(ans);
 
     return 0;

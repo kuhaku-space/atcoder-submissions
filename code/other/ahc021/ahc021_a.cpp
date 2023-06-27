@@ -4,66 +4,69 @@
 #pragma GCC optimize("inline")
 #endif
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <iostream>
+#include <numeric>
+#include <queue>
+#include <random>
+#include <tuple>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
-using ll = std::int64_t;
+using namespace std;
+using ll = int64_t;
 #define FOR(i, m, n) for (int i = (m); i < (n); ++i)
 #define rep(i, n) FOR (i, 0, n)
 template <class T, class U>
 constexpr bool chmax(T &a, const U &b) noexcept {
-    return a < (T)b ? a = b, true : false;
+    return a < b ? a = b, true : false;
 }
 template <class T, class U>
 constexpr bool chmin(T &a, const U &b) noexcept {
-    return (T)b < a ? a = b, true : false;
+    return b < a ? a = b, true : false;
 }
 constexpr int Inf = 1000000003;
-constexpr std::int64_t INF = 1000000000000000003;
+constexpr int64_t INF = 1000000000000000003;
 
 constexpr int N = 30;
 constexpr int BALL_NUM = 465;
-constexpr int FIELD_SIZE = 900;
+constexpr int SIZE = 900;
 
 struct Position {
     int x, y;
 
-    constexpr Position() : x(), y() {}
+    constexpr Position() : x(-1), y(-1) {}
     constexpr Position(int t) : x(t / N), y(t % N) {}
     constexpr Position(int _x, int _y) : x(_x), y(_y) {}
 
-    constexpr Position &operator+=(const Position &rhs) {
+    constexpr Position &operator+=(const Position &rhs) noexcept {
         this->x += rhs.x, this->y += rhs.y;
         return *this;
     }
-    constexpr Position &operator-=(const Position &rhs) {
+    constexpr Position &operator-=(const Position &rhs) noexcept {
         this->x -= rhs.x, this->y -= rhs.y;
         return *this;
     }
 
-    constexpr Position operator+(const Position &rhs) const {
+    constexpr Position operator+(const Position &rhs) const noexcept {
         return Position(*this) += rhs;
     }
-    constexpr Position operator-(const Position &rhs) const {
+    constexpr Position operator-(const Position &rhs) const noexcept {
         return Position(*this) -= rhs;
     }
-
-    friend std::ostream &operator<<(std::ostream &os, const Position &rhs) {
-        return os << rhs.x << ' ' << rhs.y;
+    constexpr bool operator==(const Position &rhs) const noexcept {
+        return this->x == rhs.x && this->y == rhs.y;
     }
-
-    constexpr Position upper_left() const {
-        return *this + Position{-1, -1};
-    }
-    constexpr Position upper_right() const {
-        return *this + Position{-1, 0};
+    constexpr bool operator!=(const Position &rhs) const noexcept {
+        return !(*this == rhs);
     }
 
     constexpr bool in_field() const {
-        return 0 <= x && x < N && 0 <= y && y < N;
+        return 0 <= x && x < N && 0 <= y && y <= x;
     }
 
     constexpr int to_line() const {
@@ -71,91 +74,162 @@ struct Position {
     }
 };
 
-std::array<Position, 2> upper_direction = {Position{-1, -1}, {-1, 0}};
+constexpr std::array<Position, 2> lower_pos = {Position{1, 0}, {1, 1}},
+                                  upper_pos = {Position{-1, -1}, {-1, 0}};
 
 struct Operation {
-    int l, r;
+    int x, y;
 
-    constexpr Operation() : l(), r() {}
-    constexpr Operation(int _l, int _r) : l(_l), r(_r) {}
-    constexpr Operation(Position p, Position q) : l(p.to_line()), r(q.to_line()) {}
+    constexpr Operation() : x(), y() {}
+    constexpr Operation(int _x, int _y) : x(_x), y(_y) {}
+    constexpr Operation(Position p, Position q) : x(p.to_line()), y(q.to_line()) {}
 };
 
-struct Solver {
-    struct State {
-        State() : field{}, ball_pos{}, operations() {}
+std::array<std::uint64_t, BALL_NUM> identity;
 
-        void input() {
-            for (int i = 0; i < N; i++) {
-                for (int j = 0; j < i + 1; j++) {
-                    std::cin >> field[i * N + j];
-                    ball_pos[field[i * N + j]] = i * N + j;
+void set_identity() {
+    std::mt19937_64 mt;
+    std::generate(identity.begin(), identity.end(), std::ref(mt));
+}
+
+template <class T>
+struct Trace {
+    int push(T operation, int prev_idx) {
+        log.emplace_back(operation, prev_idx);
+        return log.size() - 1;
+    }
+
+    std::pair<T, int> get(int idx) {
+        return log[idx];
+    }
+
+  private:
+    std::vector<std::pair<T, int>> log;
+};
+Trace<Operation> trace;
+
+template <int BEAM_SIZE>
+struct beam_search {
+    struct State {
+        State() : score(), trace_idx(-1), seed(), ball_num{} {}
+
+        bool operator<(const State &rhs) const {
+            return eval() < rhs.eval();
+        }
+        bool operator>(const State &rhs) const {
+            return rhs < *this;
+        }
+
+        int eval() const {
+            return score;
+        }
+
+        auto get_seed() const {
+            return seed;
+        }
+
+        void init() {
+            rep (i, N) {
+                rep (j, i + 1) {
+                    cin >> ball_num[i * N + j];
                 }
             }
+        }
+
+        int predict_score(Operation operation) {
+            return score + ball_num[operation.x] - ball_num[operation.y];
+        }
+
+        bool can_place(Position pos1, Position pos2) const {
+            return pos1.in_field() && pos2.in_field() &&
+                   ball_num[pos1.to_line()] > ball_num[pos2.to_line()];
+        }
+
+        State apply(Operation operation) const {
+            State res(*this);
+            res._place(operation);
+            return res;
         }
 
         auto answer() const {
-            return operations;
-        }
-
-        bool can_swap(Position lower, Position upper) {
-            return lower.in_field() && upper.in_field() &&
-                   field[lower.to_line()] < field[upper.to_line()];
-        }
-
-        bool can_move(int ball_num) {
-            auto p = Position(ball_pos[ball_num]);
-            return can_swap(p, p.upper_left()) || can_swap(p, p.upper_right());
-        }
-
-        void move(int ball_num) {
-            while (can_move(ball_num)) {
-                auto p = Position(ball_pos[ball_num]);
-                auto left = p.upper_left(), right = p.upper_right();
-                if (!can_swap(p, left)) {
-                    apply(Operation(p, right));
-                } else if (!can_swap(p, right)) {
-                    apply(Operation(p, left));
-                } else {
-                    int lvalue = field[left.to_line()], rvalue = field[right.to_line()];
-                    if (lvalue > rvalue) apply(Operation(p, left));
-                    else apply(Operation(p, right));
-                }
+            vector<Operation> res;
+            int idx = trace_idx;
+            while (idx != -1) {
+                auto [operation, prev_idx] = trace.get(idx);
+                res.emplace_back(operation);
+                idx = prev_idx;
             }
-        }
-
-        void apply(Operation operation) {
-            operations.emplace_back(operation);
-            auto l = field[operation.l], r = field[operation.r];
-            std::swap(field[operation.l], field[operation.r]);
-            std::swap(ball_pos[l], ball_pos[r]);
+            std::reverse(res.begin(), res.end());
+            return res;
         }
 
       private:
-        std::array<int, FIELD_SIZE> field;
-        std::array<int, BALL_NUM> ball_pos;
-        std::vector<Operation> operations;
+        int score, trace_idx;
+        std::uint64_t seed;
+        array<int, SIZE> ball_num;
+
+        void _place(Operation operation) {
+            trace_idx = trace.push(operation, trace_idx);
+            int x = operation.x, y = operation.y;
+            score += ball_num[x] - ball_num[y];
+            swap(ball_num[x], ball_num[y]);
+        }
     };
 
     auto solve() {
-        State state;
-        state.input();
+        set_identity();
+        std::array<State, BEAM_SIZE> cur, nxt;
+        State init_state;
+        init_state.init();
+        cur[0] = init_state;
+        int cur_size = 1, nxt_size = 0;
+        for (int t = 0; t < 10000; ++t) {
+            std::vector<std::tuple<int, Operation, int>> eval_que;
+            nxt_size = 0;
+            for (int i = 0; i < cur_size; ++i) {
+                int cnt = 0;
+                for (int cur_idx = 0; cur_idx < SIZE - N; ++cur_idx) {
+                    auto cur_pos = Position(cur_idx);
+                    if (!cur_pos.in_field()) continue;
+                    for (auto adj : lower_pos) {
+                        if (!cur[i].can_place(cur_pos, cur_pos + adj)) continue;
+                        ++cnt;
+                        auto operation = Operation(cur_pos, cur_pos + adj);
+                        auto eval = cur[i].predict_score(operation);
+                        eval_que.emplace_back(eval, operation, i);
+                    }
+                }
+                if (cnt == 0) {
+                    std::cerr << 100000 - 5 * cur[i].answer().size() << std::endl;
+                    return cur[i].answer();
+                }
+            }
+            std::sort(eval_que.begin(), eval_que.end(), [](auto l, auto r) {
+                return std::get<0>(l) > std::get<0>(r);
+            });
 
-        for (int ball_num = 0; ball_num < BALL_NUM; ball_num++) {
-            state.move(ball_num);
+            std::unordered_set<std::uint64_t> st;
+            for (int i = 0; i < (int)eval_que.size(); i++) {
+                auto [eval, operation, prev_idx] = eval_que[i];
+                auto x = cur[prev_idx].get_seed();
+                x ^= identity[operation.x];
+                x ^= identity[operation.y];
+                if (st.emplace(x).second) nxt[nxt_size++] = cur[prev_idx].apply(operation);
+                if (nxt_size == BEAM_SIZE) break;
+            }
+            swap(cur, nxt);
+            cur_size = nxt_size;
         }
-
-        return state.answer();
     }
 };
 
 int main(void) {
-    Solver solver;
-    auto operations = solver.solve();
-    std::cout << operations.size() << std::endl;
-    for (auto operation : operations) {
-        auto p = Position(operation.l), q = Position(operation.r);
-        std::cout << p << ' ' << q << std::endl;
+    beam_search<40> solver;
+    auto ans = solver.solve();
+    cout << ans.size() << '\n';
+    for (auto [l, r] : ans) {
+        auto p = Position(l), q = Position(r);
+        cout << p.x << ' ' << p.y << ' ' << q.x << ' ' << q.y << '\n';
     }
 
     return 0;

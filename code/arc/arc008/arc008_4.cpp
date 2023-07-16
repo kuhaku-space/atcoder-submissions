@@ -135,79 +135,83 @@ struct dynamic_segment_tree {
 
     struct _node {
         using pointer = _node *;
+        std::int64_t index;
         pointer left, right;
-        T value;
+        T value, product;
 
-        constexpr _node() : left(nullptr), right(nullptr), value(M::id) {}
+        constexpr _node(std::int64_t _index, T _value)
+            : index(_index), left(nullptr), right(nullptr), value(_value), product(_value) {}
     };
 
   public:
     using node_ptr = typename _node::pointer;
 
-    dynamic_segment_tree(std::int64_t n) : root(), _size(n) { this->init(); }
+    dynamic_segment_tree(std::int64_t n) : root(), _size(n) {}
 
-    T operator[](int k) const {
-        node_ptr node = this->root;
+    T operator[](std::int64_t k) const {
+        node_ptr node = root;
         std::int64_t l = 0, r = _size;
         while (r - l > 1) {
+            if (!node) return M::id;
+            if (node->index == k) return node->value;
             std::int64_t m = (l + r) >> 1;
-            if (k >= m) {
-                if (!node->right) return M::id;
-                l = m;
-                node = node->right;
-            } else {
-                if (!node->left) return M::id;
-                r = m;
-                node = node->left;
-            }
+            if (k >= m) l = m, node = node->right;
+            else r = m, node = node->left;
         }
-        return node->value;
+        return node && node->index == k ? node->value : M::id;
     }
-    T at(int k) const { return this->operator[](k); }
-    T get(int k) const { return this->operator[](k); }
+    T at(std::int64_t k) const { return operator[](k); }
+    T get(std::int64_t k) const { return operator[](k); }
 
     void set(std::int64_t k, T x) {
-        assert(0 <= k && k < this->_size);
-        node_ptr node = this->root;
+        assert(0 <= k && k < _size);
+        if (!root) {
+            root = new _node(k, x);
+            return;
+        }
+        node_ptr node = root;
         std::vector<node_ptr> nodes;
         std::int64_t l = 0, r = _size;
-        while (r - l > 1) {
-            std::int64_t m = (l + r) >> 1;
+        while (true) {
             nodes.emplace_back(node);
+            if (k == node->index) {
+                node->value = x;
+                break;
+            }
+            std::int64_t m = (l + r) >> 1;
             if (k >= m) {
-                if (!node->right) node->right = new _node();
-                l = m;
-                node = node->right;
+                if (k < node->index) std::swap(k, node->index), std::swap(x, node->value);
+                if (!node->right) node->right = new _node(k, x);
+                l = m, node = node->right;
             } else {
-                if (!node->left) node->left = new _node();
-                r = m;
-                node = node->left;
+                if (node->index < k) std::swap(k, node->index), std::swap(x, node->value);
+                if (!node->left) node->left = new _node(k, x);
+                r = m, node = node->left;
             }
         }
-        node->value = x;
 
-        std::reverse(begin(nodes), end(nodes));
+        std::reverse(std::begin(nodes), std::end(nodes));
         for (auto node : nodes) {
-            node->value = M::op(node->left ? node->left->value : M::id,
-                                node->right ? node->right->value : M::id);
+            node->product = M::op(M::op(node->left ? node->left->product : M::id, node->value),
+                                  node->right ? node->right->product : M::id);
         }
     }
-    void reset(std::int64_t k) { this->set(k, M::id); }
+    void reset(std::int64_t k) { set(k, M::id); }
 
-    T all_prod() const { return this->root ? this->root->value : M::id; }
+    T all_prod() const { return root ? root->product : M::id; }
     T prod(std::int64_t a, std::int64_t b) const {
-        assert(0 <= a && a <= this->_size);
-        assert(0 <= b && b <= this->_size);
-        return this->prod(a, b, this->root, 0, this->_size);
+        assert(0 <= a && a <= _size);
+        assert(0 <= b && b <= _size);
+        return prod(a, b, root, 0, _size);
     }
 
     template <class F>
     std::int64_t max_right(F f) const {
         assert(f(M::id));
-        if (this->root == nullptr || f(this->root->value)) return this->_size;
-        node_ptr node = this->root;
+        if (root == nullptr || f(root->value)) return _size;
+        node_ptr node = root;
         T sm = M::id;
-        std::int64_t l = 0, r = this->_size;
+        std::int64_t l = 0, r = _size;
         while (r - l > 1) {
             std::int64_t m = (l + r) >> 1;
             if (node->left == nullptr || f(M::op(sm, node->left->value))) {
@@ -225,10 +229,10 @@ struct dynamic_segment_tree {
     template <class F>
     std::int64_t min_left(F f) const {
         assert(f(M::id));
-        if (this->root == nullptr || f(this->root->value)) return 0;
-        node_ptr node = this->root;
+        if (root == nullptr || f(root->value)) return 0;
+        node_ptr node = root;
         T sm = M::id;
-        std::int64_t l = 0, r = this->_size;
+        std::int64_t l = 0, r = _size;
         while (r - l > 1) {
             std::int64_t m = (l + r) >> 1;
             if (node->right == nullptr || f(M::op(node->right->value, sm))) {
@@ -247,14 +251,13 @@ struct dynamic_segment_tree {
     node_ptr root;
     std::int64_t _size;
 
-    void init() { this->root = new _node(); }
-
     T prod(std::int64_t a, std::int64_t b, node_ptr node, std::int64_t l, std::int64_t r) const {
-        if (a <= l && r <= b) return node->value;
-        if (r <= a || b <= l) return M::id;
+        if (!node || r <= a || b <= l) return M::id;
+        if (a <= l && r <= b) return node->product;
 
-        return M::op(node->left ? this->prod(a, b, node->left, l, (l + r) >> 1) : M::id,
-                     node->right ? this->prod(a, b, node->right, (l + r) >> 1, r) : M::id);
+        return M::op(M::op(prod(a, b, node->left, l, (l + r) >> 1),
+                           a <= node->index && node->index < b ? node->value : M::id),
+                     prod(a, b, node->right, (l + r) >> 1, r));
     }
 };
 #line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"

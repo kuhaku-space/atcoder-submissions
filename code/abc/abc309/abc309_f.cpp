@@ -76,54 +76,6 @@ std::vector<T> compress(const std::vector<T> &v) {
     for (auto x : v) res.emplace_back(cps.get(x));
     return res;
 }
-#line 3 "/home/kuhaku/home/github/algo/lib/math/pow.hpp"
-
-std::int64_t safe_mod(std::int64_t a, std::int64_t mod) {
-    a %= mod;
-    return a >= 0 ? a : a + mod;
-}
-
-std::int64_t pow_int(std::int64_t a, std::int64_t n) {
-    assert(n >= 0);
-    std::int64_t res = 1, mul = a;
-    for (; n > 0; n >>= 1) {
-        if (n & 1) res *= mul;
-        mul *= mul;
-    }
-    return res;
-}
-
-std::int64_t inv_mod(std::int64_t a, std::int64_t mod) {
-    std::int64_t b = mod, u = 1, v = 0, t;
-    while (b > 0) {
-        t = a / b;
-        std::swap(a -= t * b, b);
-        std::swap(u -= t * v, v);
-    }
-    return u >= 0 ? u % mod : (mod - (-u) % mod) % mod;
-}
-
-std::int64_t pow_mod(std::int64_t a, std::int64_t n, std::int64_t mod) {
-    if (n < 0) return inv_mod(pow_mod(a, -n, mod), mod);
-    std::int64_t res = 1, mul = safe_mod(a, mod);
-    for (; n > 0; n >>= 1) {
-        if (n & 1) (res *= mul) %= mod;
-        (mul *= mul) %= mod;
-    }
-    return res;
-}
-
-int ceil_pow2(std::int64_t n) {
-    int x = 0;
-    while ((std::uint64_t(1) << x) < (std::uint64_t)(n)) ++x;
-    return x;
-}
-
-int floor_pow2(std::int64_t n) {
-    int x = 0;
-    while ((std::uint64_t(1) << (x + 1)) <= (std::uint64_t)(n)) ++x;
-    return x;
-}
 #line 3 "/home/kuhaku/home/github/algo/lib/segment_tree/monoid.hpp"
 
 template <class T>
@@ -226,135 +178,234 @@ struct Rev {
     static constexpr T id = M::id;
     static constexpr T op(T lhs, T rhs) { return M::op(rhs, lhs); }
 };
-#line 5 "/home/kuhaku/home/github/algo/lib/segment_tree/segment_tree.hpp"
+#line 4 "/home/kuhaku/home/github/algo/lib/segment_tree/dynamic_segment_tree.hpp"
 
 /**
- * @brief セグメント木
- * @see https://noshi91.hatenablog.com/entry/2020/04/22/212649
+ * @brief 動的セグメント木
  *
  * @tparam M モノイド
  */
 template <class M>
-struct segment_tree {
+struct dynamic_segment_tree {
   private:
     using T = typename M::value_type;
 
+    struct _node {
+        using pointer = _node *;
+        std::int64_t index;
+        pointer left, right;
+        T value, product;
+
+        constexpr _node(std::int64_t _index, T _value)
+            : index(_index), left(nullptr), right(nullptr), value(_value), product(_value) {}
+    };
+
   public:
-    segment_tree() : segment_tree(0) {}
-    explicit segment_tree(int n, T e = M::id) : segment_tree(std::vector<T>(n, e)) {}
-    template <class U>
-    explicit segment_tree(const std::vector<U> &v) : _n(v.size()) {
-        this->_log = ceil_pow2(this->_n);
-        this->_size = 1 << this->_log;
-        this->data = std::vector<T>(this->_size << 1, M::id);
-        for (int i = 0; i < this->_n; ++i) this->data[this->_size + i] = T(v[i]);
-        for (int i = this->_size - 1; i >= 1; --i) this->update(i);
-    }
+    using node_ptr = typename _node::pointer;
 
-    const T &operator[](int k) const { return this->data[k + this->_size]; }
-    T at(int k) const { return this->operator[](k); }
-    T get(int k) const { return this->operator[](k); }
+    dynamic_segment_tree(std::int64_t n) : root(), _size(n) {}
 
-    void set(int k, T val) {
-        assert(0 <= k && k < this->_n);
-        k += this->_size;
-        this->data[k] = val;
-        for (int i = 1; i <= this->_log; ++i) this->update(k >> i);
-    }
-    void reset(int k) { this->set(k, M::id); }
-
-    T all_prod() const { return this->data[1]; }
-    T prod(int a, int b) const {
-        assert(0 <= a && b <= this->_n);
-        T l = M::id, r = M::id;
-        for (a += this->_size, b += this->_size; a < b; a >>= 1, b >>= 1) {
-            if (a & 1) l = M::op(l, this->data[a++]);
-            if (b & 1) r = M::op(this->data[--b], r);
+    T operator[](std::int64_t k) const {
+        node_ptr node = root;
+        std::int64_t l = 0, r = _size;
+        while (node) {
+            if (k == node->index) return node->value;
+            std::int64_t m = (l + r) >> 1;
+            if (k < m) r = m, node = node->left;
+            else l = m, node = node->right;
         }
-        return M::op(l, r);
+        return M::id;
     }
+    T at(std::int64_t k) const { return operator[](k); }
+    T get(std::int64_t k) const { return operator[](k); }
 
-    template <class F>
-    int max_right(F f) const {
-        return this->max_right(0, f);
-    }
-
-    template <class F>
-    int max_right(int l, F f) const {
-        assert(0 <= l && l <= this->_n);
-        assert(f(M::id));
-        if (l == this->_n) return this->_n;
-        l += this->_size;
-        T sm = M::id;
-        do {
-            while (l % 2 == 0) l >>= 1;
-            if (!f(M::op(sm, this->data[l]))) {
-                while (l < this->_size) {
-                    l = (2 * l);
-                    if (f(M::op(sm, this->data[l]))) {
-                        sm = M::op(sm, this->data[l]);
-                        l++;
-                    }
-                }
-                return l - this->_size;
+    void set(std::int64_t k, T x) {
+        assert(0 <= k && k < _size);
+        if (!root) {
+            root = new _node(k, x);
+            return;
+        }
+        node_ptr node = root;
+        std::vector<node_ptr> nodes;
+        std::int64_t l = 0, r = _size;
+        while (true) {
+            nodes.emplace_back(node);
+            if (k == node->index) {
+                node->value = x;
+                break;
             }
-            sm = M::op(sm, this->data[l]);
-            l++;
-        } while ((l & -l) != l);
-        return this->_n;
-    }
-
-    int max_right(T x) const { return this->max_right(0, x); }
-
-    int max_right(int l, T x) const {
-        return this->max_right(l, [&x](auto y) {
-            return !(y < x);
-        });
-    }
-
-    template <class F>
-    int min_left(F f) const {
-        return this->min_left(this->_n, f);
-    }
-
-    template <class F>
-    int min_left(int r, F f) const {
-        assert(0 <= r && r <= this->_n);
-        assert(f(M::id));
-        if (r == 0) return 0;
-        r += this->_size;
-        T sm = M::id;
-        do {
-            r--;
-            while (r > 1 && (r % 2)) r >>= 1;
-            if (!f(M::op(this->data[r], sm))) {
-                while (r < this->_size) {
-                    r = (2 * r + 1);
-                    if (f(M::op(this->data[r], sm))) {
-                        sm = M::op(this->data[r], sm);
-                        r--;
-                    }
+            std::int64_t m = (l + r) >> 1;
+            if (k < m) {
+                if (node->index < k) std::swap(k, node->index), std::swap(x, node->value);
+                if (!node->left) {
+                    node->left = new _node(k, x);
+                    break;
                 }
-                return r + 1 - this->_size;
+                r = m, node = node->left;
+            } else {
+                if (k < node->index) std::swap(k, node->index), std::swap(x, node->value);
+                if (!node->right) {
+                    node->right = new _node(k, x);
+                    break;
+                }
+                l = m, node = node->right;
             }
-            sm = M::op(this->data[r], sm);
-        } while ((r & -r) != r);
-        return 0;
+        }
+
+        std::reverse(std::begin(nodes), std::end(nodes));
+        for (auto node : nodes) {
+            node->product = M::op(M::op(node->left ? node->left->product : M::id, node->value),
+                                  node->right ? node->right->product : M::id);
+        }
+    }
+    void reset(std::int64_t k) { set(k, M::id); }
+
+    T all_prod() const { return root ? root->product : M::id; }
+    T prod(std::int64_t a, std::int64_t b) const {
+        assert(0 <= a && a <= _size);
+        assert(0 <= b && b <= _size);
+        return prod(a, b, root, 0, _size);
     }
 
-    int min_left(T x) const { return this->min_left(this->_n, x); }
+    template <class F>
+    std::int64_t max_right(F f) const {
+        assert(f(M::id));
+        if (root == nullptr || f(root->value)) return _size;
+        node_ptr node = root;
+        T sm = M::id;
+        std::int64_t l = 0, r = _size;
+        while (r - l > 1) {
+            std::int64_t m = (l + r) >> 1;
+            if (node->left == nullptr || f(M::op(sm, node->left->value))) {
+                if (node->left != nullptr) sm = M::op(sm, node->left->value);
+                l = m;
+                node = node->right;
+            } else {
+                r = m;
+                node = node->left;
+            }
+        }
+        return f(M::op(sm, node->value)) ? r : l;
+    }
 
-    int min_left(int r, T x) const {
-        return this->min_left(r, [&x](auto y) {
-            return !(y < x);
-        });
+    template <class F>
+    std::int64_t min_left(F f) const {
+        assert(f(M::id));
+        if (root == nullptr || f(root->value)) return 0;
+        node_ptr node = root;
+        T sm = M::id;
+        std::int64_t l = 0, r = _size;
+        while (r - l > 1) {
+            std::int64_t m = (l + r) >> 1;
+            if (node->right == nullptr || f(M::op(node->right->value, sm))) {
+                if (node->right != nullptr) sm = M::op(node->right->value, sm);
+                r = m;
+                node = node->left;
+            } else {
+                l = m;
+                node = node->right;
+            }
+        }
+        return f(M::op(node->value, sm)) ? l : r;
     }
 
   private:
-    int _n, _size, _log;
-    std::vector<T> data;
+    node_ptr root;
+    std::int64_t _size;
 
-    void update(int k) { this->data[k] = M::op(this->data[2 * k], this->data[2 * k + 1]); }
+    T prod(std::int64_t a, std::int64_t b, node_ptr node, std::int64_t l, std::int64_t r) const {
+        if (!node || r <= a || b <= l) return M::id;
+        if (a <= l && r <= b) return node->product;
+
+        return M::op(M::op(prod(a, b, node->left, l, (l + r) >> 1),
+                           a <= node->index && node->index < b ? node->value : M::id),
+                     prod(a, b, node->right, (l + r) >> 1, r));
+    }
+};
+#line 4 "/home/kuhaku/home/github/algo/lib/segment_tree/segment_tree_2d.hpp"
+
+/**
+ * @brief 二次元セグメント木
+ *
+ * @tparam M モノイド
+ */
+template <class M>
+struct segment_tree_2d {
+  private:
+    using T = typename M::value_type;
+
+    struct _node {
+        using pointer = _node *;
+        pointer left, right;
+        dynamic_segment_tree<M> segtree;
+
+        _node(std::int64_t w) : left(nullptr), right(nullptr), segtree(w) {}
+    };
+
+  public:
+    using node_ptr = typename _node::pointer;
+
+    segment_tree_2d(std::int64_t h, std::int64_t w) : root(new _node(w)), _h(h), _w(w) {}
+
+    T at(std::int64_t x, std::int64_t y) const {
+        node_ptr node = root;
+        std::int64_t l = 0, r = _h;
+        while (r - l > 1) {
+            if (!node) return M::id;
+            std::int64_t m = (l + r) >> 1;
+            if (x < m) r = m, node = node->left;
+            else l = m, node = node->right;
+        }
+        return node ? node->segtree.get(y) : M::id;
+    }
+    T get(std::int64_t x, std::int64_t y) const { return at(x, y); }
+
+    void set(std::int64_t x, std::int64_t y, T val) {
+        assert(0 <= x && x < _h);
+        assert(0 <= y && y < _w);
+        node_ptr node = root;
+        std::vector<node_ptr> nodes;
+        std::int64_t l = 0, r = _h;
+        while (r - l > 1) {
+            std::int64_t m = (l + r) >> 1;
+            nodes.emplace_back(node);
+            if (x < m) {
+                if (!node->left) node->left = new _node(_w);
+                r = m, node = node->left;
+            } else {
+                if (!node->right) node->right = new _node(_w);
+                l = m, node = node->right;
+            }
+        }
+        node->segtree.set(y, val);
+
+        std::reverse(std::begin(nodes), std::end(nodes));
+        for (auto node : nodes) {
+            node->segtree.set(y, M::op(node->left ? node->left->segtree.get(y) : M::id,
+                                       node->right ? node->right->segtree.get(y) : M::id));
+        }
+    }
+    void reset(std::int64_t x, std::int64_t y) { set(x, y, M::id); }
+
+    T all_prod() const { return root ? root->segtree.all_prod() : M::id; }
+    T prod(std::int64_t l, std::int64_t r, std::int64_t d, std::int64_t u) const {
+        assert(0 <= l && l <= r && r <= _h);
+        assert(0 <= d && d <= u && u <= _w);
+        return prod(l, r, d, u, root, 0, _h);
+    }
+
+  private:
+    node_ptr root;
+    std::int64_t _h, _w;
+
+    T prod(std::int64_t l, std::int64_t r, std::int64_t d, std::int64_t u, node_ptr node,
+           std::int64_t x, std::int64_t y) const {
+        if (!node || y <= l || r <= x) return M::id;
+        if (l <= x && y <= r) return node->segtree.prod(d, u);
+
+        return M::op(prod(l, r, d, u, node->left, x, (x + y) >> 1),
+                     prod(l, r, d, u, node->right, (x + y) >> 1, y));
+    }
 };
 #line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
 #define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
@@ -436,97 +487,11 @@ void Aoki(bool is_not_correct = true) {
 }
 #line 5 "a.cpp"
 
-template <class M, class T = int>
-struct range_tree {
-  private:
-    using Pt = std::pair<T, T>;
-    using value_type = typename M::value_type;
-
-  public:
-    range_tree() = default;
-
-    void add(T x, T y) noexcept {
-        _pts.emplace_back(x, y);
-    }
-
-    void build() {
-        std::sort(_pts.begin(), _pts.end());
-        _pts.erase(std::unique(_pts.begin(), _pts.end()), _pts.end());
-        _size = _pts.size();
-
-        _range2yxs.resize(_size * 2);
-        for (int i = 0; i < _size; i++) _range2yxs[_size + i] = {{_pts[i].second, _pts[i].first}};
-        for (int i = _size - 1; i > 0; i--) {
-            auto &lch = _range2yxs[i * 2];
-            auto &rch = _range2yxs[i * 2 + 1];
-            std::merge(lch.begin(), lch.end(), rch.begin(), rch.end(),
-                       std::back_inserter(_range2yxs[i]));
-            _range2yxs[i].erase(std::unique(_range2yxs[i].begin(), _range2yxs[i].end()),
-                                _range2yxs[i].end());
-        }
-        for (const auto &v : _range2yxs) segtrees.emplace_back(v.size());
-    }
-
-    void set(T x, T y, value_type val) {
-        int i = std::distance(_pts.begin(), std::lower_bound(_pts.begin(), _pts.end(), Pt{x, y}));
-        assert(i < _size && _pts[i] == std::make_pair(x, y));
-        for (i += _size; i; i >>= 1) _set(i, {x, y}, val);
-    }
-
-    value_type prod(T xl, T yl, T xr, T yr) const {
-        auto comp = [](const Pt &l, const Pt &r) {
-            return l.first < r.first;
-        };
-        int l = _size + std::distance(_pts.begin(),
-                                      std::lower_bound(_pts.begin(), _pts.end(), Pt{xl, yr}, comp));
-        int r = _size + std::distance(_pts.begin(),
-                                      std::lower_bound(_pts.begin(), _pts.end(), Pt{xr, yr}, comp));
-        value_type ret = M::id;
-        while (l < r) {
-            if (l & 1)
-                ret = M::op(ret, _prod(l++, yl, yr));
-            if (r & 1)
-                ret = M::op(ret, _prod(--r, yl, yr));
-            l >>= 1, r >>= 1;
-        }
-        return ret;
-    }
-    value_type get(T x, T y) const {
-        return prod(x, x + 1, y, y + 1);
-    }
-
-  private:
-    int _size;
-    std::vector<Pt> _pts;
-    std::vector<std::vector<Pt>> _range2yxs;
-    std::vector<segment_tree<M>> segtrees;
-
-    void _set(int v, Pt p, value_type val) {
-        auto i = std::distance(
-            _range2yxs[v].begin(),
-            std::lower_bound(_range2yxs[v].begin(), _range2yxs[v].end(), Pt{p.second, p.first}));
-        segtrees[v].set(i, val);
-    }
-
-    value_type _prod(int v, T yl, T yr) const {
-        auto comp = [&](const Pt &l, const Pt &r) {
-            return l.first < r.first;
-        };
-        auto il = std::distance(
-            _range2yxs[v].begin(),
-            std::lower_bound(_range2yxs[v].begin(), _range2yxs[v].end(), Pt{yl, yl}, comp));
-        auto ir = std::distance(
-            _range2yxs[v].begin(),
-            std::lower_bound(_range2yxs[v].begin(), _range2yxs[v].end(), Pt{yr, yr}, comp));
-        return segtrees[v].prod(il, ir);
-    }
-};
-
 int main(void) {
     int n;
     cin >> n;
     vector<tuple<int, int, int>> a(n);
-    coordinate_compression<int> cx, cy, cz;
+    coordinate_compression<int> cy;
     rep (i, n) {
         int x, y, z;
         cin >> x >> y >> z;
@@ -534,30 +499,23 @@ int main(void) {
         sort(all(t));
         x = t[0], y = t[1], z = t[2];
         a[i] = {x, y, z};
-        cx.add(x), cy.add(y), cz.add(z);
+        cy.add(y);
     }
-    cx.build(), cy.build(), cz.build();
+    cy.build();
 
-    vector<vector<pair<int, int>>> v(cx.size());
-    for (auto &[x, y, z] : a) {
-        x = cx.get(x), y = cy.get(y), z = cz.get(z);
-        v[cx.size() - 1 - x].emplace_back(cy.size() - 1 - y, cz.size() - 1 - z);
-    }
-
-    range_tree<Add<int>> bit;
-    for (auto &u : v) {
-        for (auto [x, y] : u) bit.add(x, y);
-    }
-    bit.build();
-
-    for (auto &u : v) {
-        for (auto [x, y] : u) {
-            if (bit.prod(0, 0, x, y)) {
-                Yes();
-                return 0;
-            }
+    for (auto &[x, y, z] : a) y = cy.get(y);
+    sort(all(a), [&](auto x, auto y) {
+        if (get<0>(x) == get<0>(y))
+            return get<1>(x) > get<1>(y);
+        return get<0>(x) < get<0>(y);
+    });
+    segment_tree_2d<Add<int>> st(2e5, 1e9);
+    for (auto &&[x, y, z] : a) {
+        if (st.prod(0, y, 0, z)) {
+            Yes();
+            return 0;
         }
-        for (auto [x, y] : u) bit.set(x, y, 1);
+        st.set(y, z, 1);
     }
     No();
 

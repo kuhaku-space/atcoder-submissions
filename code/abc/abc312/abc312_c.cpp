@@ -19,19 +19,6 @@ constexpr int MOD = 1000000007;
 constexpr int MOD_N = 998244353;
 constexpr double EPS = 1e-7;
 constexpr double PI = M_PI;
-#line 2 "org/rle.hpp"
-
-template <class Container>
-auto run_length_encoding(const Container &a) {
-    std::vector<std::pair<std::decay_t<decltype(a[0])>, int>> res;
-    for (auto &&e : a) {
-        if (res.empty() || res.back().first != e)
-            res.emplace_back(e, 1);
-        else
-            ++res.back().second;
-    }
-    return res;
-}
 #line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
 #define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
 #define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
@@ -110,14 +97,27 @@ void Takahashi(bool is_correct = true) {
 void Aoki(bool is_not_correct = true) {
     Takahashi(!is_not_correct);
 }
-#line 4 "a.cpp"
+#line 3 "a.cpp"
 
 int main(void) {
-    int n;
-    cin >> n;
-    string s;
-    cin >> s;
-    co(run_length_encoding(s).size());
+    int n, m;
+    cin >> n >> m;
+    vector<int> a(n), b(m);
+    cin >> a >> b;
+    sort(all(a));
+    sort(all(b));
+    vector<int> c = a;
+    for (auto x : b) c.emplace_back(x + 1);
+    sort(all(c));
+    c.erase(unique(all(c)), c.end());
+    for (auto x : c) {
+        int l = b.end() - lower_bound(all(b), x);
+        int r = upper_bound(all(a), x) - a.begin();
+        if (r - l >= 0) {
+            co(x);
+            return 0;
+        }
+    }
 
     return 0;
 }

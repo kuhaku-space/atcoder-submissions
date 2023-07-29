@@ -113,11 +113,24 @@ void Aoki(bool is_not_correct = true) {
 #line 4 "a.cpp"
 
 int main(void) {
-    int n;
-    cin >> n;
     string s;
     cin >> s;
-    co(run_length_encoding(s).size());
+    auto v = run_length_encoding(s);
+    int n = s.size();
+    vector<int> ans(n);
+    int m = 0;
+    for (auto [x, y] : v) {
+        if (x == 'R') {
+            m += y;
+            ans[m] += y / 2;
+            ans[m - 1] += (y + 1) / 2;
+        } else {
+            ans[m] += (y + 1) / 2;
+            ans[m - 1] += y / 2;
+            m += y;
+        }
+    }
+    co(ans);
 
     return 0;
 }

@@ -113,11 +113,17 @@ void Aoki(bool is_not_correct = true) {
 #line 4 "a.cpp"
 
 int main(void) {
-    int n;
-    cin >> n;
+    int n, k;
+    cin >> n >> k;
     string s;
     cin >> s;
-    co(run_length_encoding(s).size());
+    auto v = run_length_encoding(s);
+    int m = v.size() - 1;
+    if (m <= 2 * k) {
+        co(n - 1);
+    } else {
+        co(n - 1 - m + 2 * k);
+    }
 
     return 0;
 }

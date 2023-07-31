@@ -19,36 +19,6 @@ constexpr int MOD = 1000000007;
 constexpr int MOD_N = 998244353;
 constexpr double EPS = 1e-7;
 constexpr double PI = M_PI;
-#line 2 "/home/kuhaku/home/github/algo/lib/string/z_algorithm.hpp"
-
-/**
- * @brief Z algorithm
- *
- * @tparam Container
- *
- * @see https://snuke.hatenablog.com/entry/2014/12/03/214243
- *
- * Z[i] := S[i:Z[i]] == S[0:Z[i]-i]
- */
-template <class Container>
-std::vector<int> z_algorithm(const Container &s) {
-    int n = s.size();
-    std::vector<int> res(n);
-    res[0] = n;
-    int i = 1, j = 0;
-    while (i < n) {
-        while (i + j < n && s[j] == s[i + j]) ++j;
-        res[i] = j;
-        if (!j) {
-            ++i;
-            continue;
-        }
-        int k = 1;
-        while (i + k < n && k + res[k] < j) res[i + k] = res[k], ++k;
-        i += k, j -= k;
-    }
-    return res;
-}
 #line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
 #define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
 #define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
@@ -127,63 +97,52 @@ void Takahashi(bool is_correct = true) {
 void Aoki(bool is_not_correct = true) {
     Takahashi(!is_not_correct);
 }
-#line 4 "a.cpp"
-
-int repetition(const string &s) {
-    auto z = z_algorithm(s);
-    int n = s.size();
-    for (int i = 1; i <= n / 2; ++i) {
-        if (n % i == 0 && z[i] == n - i)
-            return i;
-    }
-    return n;
-}
-
-vector<int> solve(const vector<int> &v) {
-    int n = v.size();
-    unordered_map<int, int> mp;
-    unordered_set<int> st;
-    vector<int> res;
-    for (auto x : v) {
-        int y = x;
-        if (mp.count(x))
-            y = mp[x];
-        while (st.count(y)) y += x;
-        mp[x] = y;
-        res.emplace_back(y);
-        st.emplace(y);
-    }
-    return res;
-}
+#line 3 "a.cpp"
 
 int main(void) {
     int n;
     cin >> n;
-    vector<string> x(n);
-    vector<int> y(n);
-    rep (i, n) {
-        string s;
-        cin >> s;
-        int len = repetition(s);
-        x[i] = s.substr(0, len);
-        y[i] = s.size() / len;
+    vector<tuple<int, int, int, int, int, int>> v(n);
+    for (auto &[a, b, c, d, e, f] : v) cin >> a >> b >> c >> d >> e >> f;
+    vector x(100, vector(100, vector(100, -1)));
+    rep (y, n) {
+        auto [a, b, c, d, e, f] = v[y];
+        FOR (i, a, d) {
+            FOR (j, b, e) {
+                FOR (k, c, f) x[i][j][k] = y;
+            }
+        }
     }
 
-    unordered_map<string, vector<pair<int, int>>> mp;
-    rep (i, n) {
-        mp[x[i]].emplace_back(i, y[i]);
+    set<pair<int, int>> st;
+    vector<int> dx = {1, -1, 0, 0, 0, 0}, dy = {0, 0, 1, -1, 0, 0}, dz = {0, 0, 0, 0, 1, -1};
+    auto in_field = [](int x, int y, int z) {
+        return 0 <= x && x < 100 && 0 <= y && y < 100 && 0 <= z && z < 100;
+    };
+    rep (i, 100) {
+        rep (j, 100) {
+            rep (k, 100) {
+                int a = x[i][j][k];
+                if (a == -1)
+                    continue;
+                rep (l, 6) {
+                    if (in_field(i + dx[l], j + dy[l], k + dz[l])) {
+                        int b = x[i + dx[l]][j + dy[l]][k + dz[l]];
+                        if (b == -1 || a == b)
+                            continue;
+                        int c = a;
+                        if (c < b)
+                            swap(b, c);
+                        st.emplace(b, c);
+                    }
+                }
+            }
+        }
     }
 
     vector<int> ans(n);
-    for (auto &&[s, t] : mp) {
-        vector<int> v;
-        for (auto [a, b] : t) v.emplace_back(b);
-        auto u = solve(v);
-        rep (i, v.size()) {
-            ans[t[i].first] = u[i] / t[i].second;
-        }
-    }
-    co(ans);
+    for (auto [a, b] : st) ++ans[a], ++ans[b];
+    for (auto e : ans) co(e);
 
     return 0;
 }

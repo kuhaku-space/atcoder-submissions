@@ -16,18 +16,20 @@
 #pragma GCC optimize("inline")
 #endif
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
 #include <iostream>
 #include <queue>
 #include <set>
+#include <tuple>
 #include <vector>
 
 using namespace std;
 using ll = int64_t;
 #define FOR(i, m, n) for (int i = (m); i < (n); ++i)
-#define rep(i, n) FOR(i, 0, n)
+#define rep(i, n) FOR (i, 0, n)
 template <class T, class U>
 bool chmax(T &a, const U &b) {
     return a < b ? a = b, true : false;
@@ -129,43 +131,68 @@ array<int, SZ> C;
 int SUM = 0;
 array<array<int, SZ>, D> S;
 
+struct Operation {
+    int d, t;
+};
+
+template <class T>
+struct Trace {
+    int push(T x, int prev_idx) {
+        log.emplace_back(x, prev_idx);
+        return log.size() - 1;
+    }
+
+    std::pair<T, int> get(int idx) {
+        return log[idx];
+    }
+
+  private:
+    std::vector<std::pair<T, int>> log;
+};
+Trace<Operation> trace;
+
 template <int BEAM_SIZE>
 struct beam_search {
     struct State {
         array<short, SZ> last;
-        array<char, D> ans;
-        int score, sum;
+        int score, sum, trace_idx;
 
-        State() : score(), sum() {
-            last.fill(0);
-        }
+        State() : last{}, score(), sum(), trace_idx(-1) {}
 
-        void update_score(int d, int t) {
-            score += S[d][t];
-            sum -= C[t] * (d + 1 - last[t]);
+        void update_score(Operation op) {
+            int d = op.d, t = op.t;
+            sum += SUM - C[t] * (d + 1 - last[t]);
+            score += S[d][t] - sum;
             last[t] = d + 1;
-            sum += SUM;
-            score -= sum;
         }
 
         int next_eval(int d, int t) {
-            int res = score;
-            res += S[d][t];
-            res += C[t] * (d + 1 - last[t]);
-            res -= sum + SUM;
-            return res;
+            return score + S[d][t] + C[t] * (d + 1 - last[t]) - sum - SUM;
         }
 
         int eval() const {
             return score;
         }
 
-        void place(int d, int t) {
-            ans[d] = t;
-            update_score(d, t);
+        State apply(Operation op) const {
+            State res{*this};
+            res.place(op);
+            return res;
+        }
+
+        void place(Operation op) {
+            trace_idx = trace.push(op, trace_idx);
+            update_score(op);
         }
 
         array<char, D> answer() {
+            array<char, D> ans = {};
+            int idx = trace_idx;
+            while (idx != -1) {
+                auto [op, prev_idx] = trace.get(idx);
+                ans[op.d] = op.t;
+                idx = prev_idx;
+            }
             return ans;
         }
     };
@@ -173,25 +200,26 @@ struct beam_search {
     auto solve() {
         array<State, BEAM_SIZE> cur, nxt;
         cur[0] = State();
-        int cur_size = 1, nxt_size = 0;
-        rep(d, D) {
-            priority_queue<pair<int, int>, vector<pair<int, int>>, greater<>> eval_que;
-            nxt_size = 0;
+        int cur_size = 1;
+        rep (d, D) {
+            vector<tuple<int, int, Operation>> eval_que;
+            eval_que.reserve(cur_size * SZ);
             for (int i = 0; i < cur_size; ++i) {
-                rep(t, SZ) {
+                rep (t, SZ) {
                     int eval = cur[i].next_eval(d, t);
-                    if (nxt_size < BEAM_SIZE) {
-                        nxt[nxt_size] = cur[i];
-                        nxt[nxt_size].place(d, t);
-                        eval_que.emplace(eval, nxt_size++);
-                    } else if (eval > eval_que.top().first) {
-                        int idx = eval_que.top().second;
-                        eval_que.pop();
-                        nxt[idx] = cur[i];
-                        nxt[idx].place(d, t);
-                        eval_que.emplace(eval, idx);
-                    }
+                    eval_que.emplace_back(eval, i, Operation{d, t});
                 }
+            }
+            if (eval_que.size() > BEAM_SIZE) {
+                nth_element(eval_que.begin(), eval_que.begin() + BEAM_SIZE, eval_que.end(),
+                            [](auto x, auto y) {
+                                return get<0>(x) > get<0>(y);
+                            });
+            }
+            int nxt_size = 0;
+            for (int i = 0; i < min(BEAM_SIZE, (int)eval_que.size()); i++) {
+                auto &&[eval, prev_idx, operation] = eval_que[i];
+                nxt[i] = cur[prev_idx].apply(operation);
             }
             swap(cur, nxt);
             cur_size = nxt_size;
@@ -199,10 +227,8 @@ struct beam_search {
 
         int idx = 0, max_eval = cur[0].eval();
         for (int i = 1; i < cur_size; ++i) {
-            if (chmax(max_eval, cur[i].eval()))
-                idx = i;
+            if (chmax(max_eval, cur[i].eval())) idx = i;
         }
-        cerr << max_eval << endl;
         return cur[idx].answer();
     }
 };
@@ -228,27 +254,24 @@ struct annealing {
             score = 0;
             int sum = 0;
             array<short, SZ> last = {};
-            rep(i, SZ) {
+            rep (i, SZ) {
                 memo[i].emplace_back(-1);
             }
-            rep(d, D) {
+            rep (d, D) {
                 memo[ans[d]].emplace_back(d);
                 char t = ans[d];
-                score += S[d][t];
-                sum -= C[t] * (d + 1 - last[t]);
+                sum += SUM - C[t] * (d + 1 - last[t]);
+                score += S[d][t] - sum;
                 last[t] = d + 1;
-                sum += SUM;
-                score -= sum;
             }
-            rep(i, SZ) {
+            rep (i, SZ) {
                 memo[i].emplace_back(D);
             }
         }
 
         auto update(int d, char e) {
             auto a = ans[d];
-            if (a == e)
-                return a;
+            if (a == e) return a;
             auto it = lower_bound(memo[a].begin(), memo[a].end(), d);
             auto ne = *next(it), pr = *prev(it);
             score -= C[a] * (ne - d) * (d - pr);
@@ -277,7 +300,7 @@ struct annealing {
         int score = max_score;
         while (sa.get_time() < TL) {
             double temp = sa.temperature();
-            rep(i, 300) {
+            rep (i, 300) {
                 if (xor128() % 2) {
                     int d = xor128() % D;
                     char e = xor128() % SZ;
@@ -316,15 +339,16 @@ struct annealing {
 int main(void) {
     int tmp;
     cin >> tmp;
-    rep(i, SZ) cin >> C[i];
-    rep(i, SZ) SUM += C[i];
-    rep(i, D) rep(j, SZ) cin >> S[i][j];
+    rep (i, SZ) cin >> C[i];
+    rep (i, SZ) SUM += C[i];
+    rep (i, D)
+        rep (j, SZ) cin >> S[i][j];
 
     beam_search<4000> solver1;
-    annealing<1980> solver2;
+    annealing<1985> solver2;
     auto ans = solver1.solve();
-    cerr << solver2.get_time() << endl;
-    cerr << solver2.solve(ans) << endl;
+    cerr << (double)clock() / CLOCKS_PER_SEC << endl;
+    cerr << "Score = " << solver2.solve(ans) + 1000000 << endl;
     for (auto i : ans) cout << (int)i + 1 << endl;
 
     return 0;

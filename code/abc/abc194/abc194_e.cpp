@@ -1,66 +1,166 @@
+#line 1 "a.cpp"
+#define PROBLEM ""
+#line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
+#pragma GCC target("sse4.2,avx2,bmi2")
+#pragma GCC optimize("O3")
+#pragma GCC optimize("unroll-loops")
 #include <bits/stdc++.h>
-using namespace std;
-using ll = int64_t;
-using ld = long double;
-using Pi = pair<int, int>;
-using Pl = pair<ll, ll>;
-using Vi = vector<int>;
-using Vl = vector<ll>;
-using Vp = vector<Pl>;
-template <class T>
-using Vv = vector<vector<T>>;
-#define FOR(i, m, n) for(int i = (m); i < (n); ++i)
-#define FORR(i, m, n) for(int i = (m)-1; i >= (n); --i)
-#define rep(i, n) FOR(i, 0, n)
-#define repn(i, n) FOR(i, 1, n+1)
-#define repr(i, n) FORR(i, n, 0)
-#define repnr(i, n) FORR(i, n+1, 1)
-#define all(s) (s).begin(), (s).end()
 template <class T, class U>
-bool chmax(T &a, const T b) { return a < b ? a = b, true : false; }
+bool chmax(T &a, const U &b) {
+    return a < (T)b ? a = (T)b, true : false;
+}
 template <class T, class U>
-bool chmin(T &a, const U b) { return b < a ? a = b, true : false; }
-template <class T>
-istream &operator>>(istream &is, vector<T> &v) { for (T &i : v) is >> i; return is; }
-template <class T>
-ostream &operator<<(ostream &os, const vector<T> &v) { for (const T &i : v) os << i << ' '; return os; }
-void _co() { cout << '\n'; }
-template <class Head, class... Tail>
-void _co(Head&& head, Tail&&... tail) { cout << ' ' << head; _co(forward<Tail>(tail)...); }
-template <class Head, class... Tail>
-void co(Head&& head, Tail&&... tail) { cout << head; _co(forward<Tail>(tail)...); }
-void ce() { cerr << '\n'; }
-template <class Head, class... Tail>
-void ce(Head&& head, Tail&&... tail) { cerr << head << ' '; ce(forward<Tail>(tail)...); }
-void sonic() { ios::sync_with_stdio(false); cin.tie(nullptr); }
-void setp(const int n) { cout << fixed << setprecision(n); }
-constexpr int64_t INF = 1000000000000000003;
+bool chmin(T &a, const U &b) {
+    return (T)b < a ? a = (T)b, true : false;
+}
+constexpr std::int64_t INF = 1000000000000000003;
 constexpr int Inf = 1000000003;
 constexpr int MOD = 1000000007;
 constexpr int MOD_N = 998244353;
 constexpr double EPS = 1e-7;
-const double PI = acos(-1);
+constexpr double PI = M_PI;
+#line 2 "/home/kuhaku/home/github/algo/lib/algorithm/mex.hpp"
+
+/**
+ * @brief Mex
+ *
+ */
+struct minimum_excluded {
+    minimum_excluded() : n(), _size(), is_exist(64), v() {}
+
+    constexpr int operator()() const noexcept { return this->n; }
+    constexpr int get() const noexcept { return this->n; }
+
+    void add(int x) {
+        if (x < 0) return;
+        ++this->_size;
+        if (this->_size == (int)this->is_exist.size()) {
+            this->is_exist.resize(this->_size << 1);
+            int cnt = 0;
+            for (int i = 0; i < (int)this->v.size(); ++i) {
+                if (this->v[i] < (int)this->is_exist.size()) {
+                    if (this->is_exist[this->v[i]]) --this->_size;
+                    else this->is_exist[this->v[i]] = true;
+                } else {
+                    this->v[cnt++] = this->v[i];
+                }
+            }
+            this->v.erase(this->v.begin() + cnt, this->v.end());
+        }
+        if (x < (int)this->is_exist.size()) {
+            if (this->is_exist[x]) --this->_size;
+            else this->is_exist[x] = true;
+        } else {
+            this->v.emplace_back(x);
+        }
+        while (this->is_exist[this->n]) ++this->n;
+    }
+
+  private:
+    int n, _size;
+    std::vector<bool> is_exist;
+    std::vector<int> v;
+};
+#line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
+#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
+#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
+#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
+#define rep(i, n) FOR (i, 0, n)
+#define repn(i, n) FOR (i, 1, n + 1)
+#define repr(i, n) FORR (i, n, 0)
+#define repnr(i, n) FORR (i, n + 1, 1)
+#define all(s) (s).begin(), (s).end()
+#line 3 "/home/kuhaku/home/github/algo/lib/template/sonic.hpp"
+struct Sonic {
+    Sonic() {
+        std::ios::sync_with_stdio(false);
+        std::cin.tie(nullptr);
+    }
+
+    constexpr void operator()() const {}
+} sonic;
+#line 5 "/home/kuhaku/home/github/algo/lib/template/atcoder.hpp"
+using namespace std;
+using ll = std::int64_t;
+using ld = long double;
+template <class T, class U>
+std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
+    return is >> p.first >> p.second;
+}
+template <class T>
+std::istream &operator>>(std::istream &is, std::vector<T> &v) {
+    for (T &i : v) is >> i;
+    return is;
+}
+template <class T, class U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
+    return os << '(' << p.first << ',' << p.second << ')';
+}
+template <class T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+    for (auto it = v.begin(); it != v.end(); ++it) {
+        os << (it == v.begin() ? "" : " ") << *it;
+    }
+    return os;
+}
+template <class Head, class... Tail>
+void co(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
+    else std::cout << head << ' ', co(std::forward<Tail>(tail)...);
+}
+template <class Head, class... Tail>
+void ce(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
+    else std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
+}
+template <typename T, typename... Args>
+auto make_vector(T x, int arg, Args... args) {
+    if constexpr (sizeof...(args) == 0) return std::vector<T>(arg, x);
+    else return std::vector(arg, make_vector<T>(x, args...));
+}
+void setp(int n) {
+    std::cout << std::fixed << std::setprecision(n);
+}
+void Yes(bool is_correct = true) {
+    std::cout << (is_correct ? "Yes" : "No") << '\n';
+}
+void No(bool is_not_correct = true) {
+    Yes(!is_not_correct);
+}
+void YES(bool is_correct = true) {
+    std::cout << (is_correct ? "YES" : "NO") << '\n';
+}
+void NO(bool is_not_correct = true) {
+    YES(!is_not_correct);
+}
+void Takahashi(bool is_correct = true) {
+    std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n';
+}
+void Aoki(bool is_not_correct = true) {
+    Takahashi(!is_not_correct);
+}
+#line 4 "a.cpp"
 
 int main(void) {
     int n, m;
     cin >> n >> m;
-    Vi a(n);
+    vector<int> a(n);
     cin >> a;
 
-    Vi cnt(n);
-    int ans = n;
-    rep(i, n) {
-        cnt[a[i]]++;
-        if (i == m - 1) {
-            rep(i, n) {
-                if (cnt[i] == 0) {
-                    ans = i;
-                    break;
-                }
-            }
+    vector<int> cnt(m);
+    minimum_excluded mex;
+    int ans = m;
+    rep (i, n) {
+        if (a[i] < m)
+            cnt[a[i]]++;
+        if (i < m - 1) {
+            mex.add(a[i]);
+        } else if (i == m - 1) {
+            mex.add(a[i]);
+            ans = mex();
         }
         if (i >= m) {
-            if (--cnt[a[i - m]] == 0)
+            if (a[i - m] < m && --cnt[a[i - m]] == 0)
                 chmin(ans, a[i - m]);
         }
     }

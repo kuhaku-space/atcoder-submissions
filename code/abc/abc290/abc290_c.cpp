@@ -5,7 +5,6 @@
 #pragma GCC optimize("O3")
 #pragma GCC optimize("unroll-loops")
 #include <bits/stdc++.h>
-using namespace std;
 template <class T, class U>
 bool chmax(T &a, const U &b) {
     return a < (T)b ? a = (T)b, true : false;
@@ -14,12 +13,54 @@ template <class T, class U>
 bool chmin(T &a, const U &b) {
     return (T)b < a ? a = (T)b, true : false;
 }
-constexpr int64_t INF = 1000000000000000003;
+constexpr std::int64_t INF = 1000000000000000003;
 constexpr int Inf = 1000000003;
 constexpr int MOD = 1000000007;
 constexpr int MOD_N = 998244353;
 constexpr double EPS = 1e-7;
 constexpr double PI = M_PI;
+#line 2 "/home/kuhaku/home/github/algo/lib/algorithm/mex.hpp"
+
+/**
+ * @brief Mex
+ *
+ */
+struct minimum_excluded {
+    minimum_excluded() : n(), _size(), is_exist(64), v() {}
+
+    constexpr int operator()() const noexcept { return this->n; }
+    constexpr int get() const noexcept { return this->n; }
+
+    void add(int x) {
+        if (x < 0) return;
+        ++this->_size;
+        if (this->_size == (int)this->is_exist.size()) {
+            this->is_exist.resize(this->_size << 1);
+            int cnt = 0;
+            for (int i = 0; i < (int)this->v.size(); ++i) {
+                if (this->v[i] < (int)this->is_exist.size()) {
+                    if (this->is_exist[this->v[i]]) --this->_size;
+                    else this->is_exist[this->v[i]] = true;
+                } else {
+                    this->v[cnt++] = this->v[i];
+                }
+            }
+            this->v.erase(this->v.begin() + cnt, this->v.end());
+        }
+        if (x < (int)this->is_exist.size()) {
+            if (this->is_exist[x]) --this->_size;
+            else this->is_exist[x] = true;
+        } else {
+            this->v.emplace_back(x);
+        }
+        while (this->is_exist[this->n]) ++this->n;
+    }
+
+  private:
+    int n, _size;
+    std::vector<bool> is_exist;
+    std::vector<int> v;
+};
 #line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
 #define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
 #define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
@@ -39,7 +80,8 @@ struct Sonic {
     constexpr void operator()() const {}
 } sonic;
 #line 5 "/home/kuhaku/home/github/algo/lib/template/atcoder.hpp"
-using ll = int64_t;
+using namespace std;
+using ll = std::int64_t;
 using ld = long double;
 template <class T, class U>
 std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
@@ -97,28 +139,18 @@ void Takahashi(bool is_correct = true) {
 void Aoki(bool is_not_correct = true) {
     Takahashi(!is_not_correct);
 }
-#line 3 "a.cpp"
+#line 4 "a.cpp"
 
 int main(void) {
     int n, k;
     cin >> n >> k;
-    vector<int> a(n);
-    cin >> a;
-
-    sort(all(a));
-    a.erase(unique(all(a)), a.end());
-
-    while (k < a.size()) {
-        a.pop_back();
+    minimum_excluded mex;
+    rep (i, n) {
+        int x;
+        cin >> x;
+        mex.add(x);
     }
-
-    set<int> st(all(a));
-    rep (i, n + 2) {
-        if (!st.count(i)) {
-            co(i);
-            return 0;
-        }
-    }
+    co(min(mex(), k));
 
     return 0;
 }

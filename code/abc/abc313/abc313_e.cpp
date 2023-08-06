@@ -753,16 +753,16 @@ void Aoki(bool is_not_correct = true) {
 
 using Mint = modint998;
 
-template <class T>
-auto run_press(const T& a) {
-    vector<pair<decay_t<decltype(a[0])>, ll>> ans;
-    for (auto x : a) {
-        if (ans.empty() || ans.back().first != x)
-            ans.emplace_back(x, 1);
+template <class Container>
+auto run_length_encoding(const Container& a) -> decltype(auto) {
+    std::vector<std::pair<std::decay_t<decltype(a[0])>, int>> res;
+    for (auto&& x : a) {
+        if (res.empty() || res.back().first != x)
+            res.emplace_back(x, 1);
         else
-            ans.back().second++;
+            res.back().second++;
     }
-    return ans;
+    return res;
 }
 
 int main(void) {
@@ -784,7 +784,7 @@ int main(void) {
         }
     }
 
-    auto v = run_press(t);
+    auto v = run_length_encoding(t);
 
     Mint ans = 0;
     int m = v.size();

@@ -70,40 +70,38 @@ struct Xorshift {
     state_type state;
 } xorshift;
 
+int L;  // 10 <= L <= 50
+int N;  // 60 <= N <= 100
+int S;  // 1 <= S <= 900
+
 struct Pos {
     int y, x;
+
+    int norm1(const Pos& p) const {
+        int dy = std::abs(y - p.y), dx = std::abs(x - p.x);
+        dy = std::min(dy, L - dy);
+        dx = std::min(dx, L - dx);
+        return dx + dy;
+    }
+
+    int norm2(const Pos& p) const {
+        int dy = std::abs(y - p.y), dx = std::abs(x - p.x);
+        dy = std::min(dy, L - dy);
+        dx = std::min(dx, L - dx);
+        return dx * dx + dy * dy;
+    }
+
+    int distance_to_center() const {
+        return std::abs(x - L / 2) + std::abs(y - L / 2);
+    }
 
     std::pair<int, int> pair() const {
         return std::make_pair(y, x);
     }
 };
 
-struct bitset_2d {
-    bitset_2d(int n) : _size(n), bits(n) {}
-
-    bool get(int y, int x) const {
-        return bits[y] >> x & 1;
-    }
-
-    bool get(const Pos& pos) const {
-        return get(pos.y, pos.x);
-    }
-
-    void set(int y, int x) {
-        bits[y] |= 1ul << x;
-    }
-
-    void set(const Pos& pos) {
-        set(pos.y, pos.x);
-    }
-
-    void reset() {
-        bits = std::vector<std::uint64_t>(_size);
-    }
-
-  private:
-    int _size;
-    std::vector<std::uint64_t> bits;
+struct Operation {
+    int y, x, value;
 };
 
 namespace Judge {
@@ -117,7 +115,7 @@ void set_temperature(const std::vector<std::vector<int>>& temperature) {
     std::cout.flush();
 }
 
-int measure(int i, int y, int x) {
+Operation measure(int i, int y, int x) {
     std::cout << i << " " << y << " " << x << std::endl;
     int v;
     std::cin >> v;
@@ -125,7 +123,7 @@ int measure(int i, int y, int x) {
         std::cerr << "something went wrong. i=" << i << " y=" << y << " x=" << x << std::endl;
         exit(1);
     }
-    return v;
+    return Operation{y, x, v};
 }
 
 void answer(const std::vector<int>& estimate) {
@@ -135,30 +133,16 @@ void answer(const std::vector<int>& estimate) {
 
 }  // namespace Judge
 
-struct Operation {
-    int y, x, value;
-};
-
 struct Solver {
-    const int L;
-    const int N;
-    const int S;
     const std::vector<Pos> landing_pos;
 
-    Solver(int L, int N, int S, const std::vector<Pos>& landing_pos)
-        : L(L), N(N), S(S), landing_pos(landing_pos) {}
+    Solver(const std::vector<Pos>& landing_pos) : landing_pos(landing_pos) {}
 
     void solve();
 
     std::vector<int> create_landing_order() const {
-        std::vector<std::pair<int, int>> values(N);
-        for (int i = 0; i < N; ++i) {
-            auto [y, x] = landing_pos[i].pair();
-            values[i] = {std::min(abs(x - (L + 1) / 2), abs(L / 2 - x)) +
-                             std::min(abs(y - (L + 1) / 2), abs(L / 2 - y)),
-                         std::min(abs(x - (L + 1) / 2), abs(L / 2 - x)) -
-                             std::min(abs(y - (L + 1) / 2), abs(L / 2 - y))};
-        }
+        std::vector<int> values(N);
+        for (int i = 0; i < N; ++i) values[i] = landing_pos[i].distance_to_center();
         std::vector<int> ord(N);
         std::iota(ord.begin(), ord.end(), 0);
         std::sort(ord.begin(), ord.end(), [&values](auto x, auto y) {
@@ -190,7 +174,7 @@ struct Solver {
         return landing_temperature;
     }
 
-    void set_landing_temperature(std::vector<std::vector<int>>& temperature) const {
+    void set_landing_temperature(std::vector<std::vector<double>>& temperature) const {
         auto values = create_landing_temperature();
         for (int i = 0; i < N; ++i) {
             auto&& pos = landing_pos[i];
@@ -198,114 +182,38 @@ struct Solver {
         }
     }
 
-    Pos fix_pos(const Pos& p, const Pos& q) const {
-        return Pos{(p.y >= q.y) ? (q.y - p.y + L < p.y - q.y ? q.y + L : q.y)
-                                : (p.y - q.y + L < q.y - p.y ? q.y - L : q.y),
-                   (p.x >= q.x) ? (q.x - p.x + L < p.x - q.x ? q.x + L : q.x)
-                                : (p.x - q.x + L < q.x - p.x ? q.x - L : q.x)};
-    }
-
-    std::vector<Pos> create_fixed_pos(const std::vector<Pos>& original_pos, const Pos& p) const {
-        const int n = original_pos.size();
-        std::vector<Pos> fixed_pos(n);
-        for (int i = 0; i < n; ++i) fixed_pos[i] = fix_pos(p, original_pos[i]);
-        return fixed_pos;
-    }
-
-    std::vector<int> create_finished_order(const std::vector<Pos>& finished_pos,
-                                           const Pos& pos) const {
-        const int finished_size = finished_pos.size();
-        std::vector<int> finished_order(finished_size);
-        std::iota(finished_order.begin(), finished_order.end(), 0);
-        std::vector<int> finished_dists(finished_size);
-        for (int i = 0; i < finished_size; ++i) finished_dists[i] = dist(pos, finished_pos[i]);
-        std::sort(finished_order.begin(), finished_order.end(), [&finished_dists](auto l, auto r) {
-            return finished_dists[l] < finished_dists[r];
-        });
-        return finished_order;
-    }
-
-    int calculate_temperature(const std::vector<std::vector<int>>& temperature,
-                              const std::vector<Pos>& finished_pos, const Pos& pos) const {
-        auto&& finished_order = create_finished_order(finished_pos, pos);
-        auto&& fixed_pos = create_fixed_pos(finished_pos, pos);
-        std::vector<int> used_idx;
-        for (int idx : finished_order) {
-            bool added = true;
-            for (auto i : used_idx) {
-                if (dot(fixed_pos[i], pos, fixed_pos[idx]) < 0) {
-                    added = false;
-                    break;
-                }
-            }
-            if (added)
-                used_idx.emplace_back(idx);
-        }
-        double sum = 0;
-        for (auto idx : used_idx) sum += 1. / dist(pos, finished_pos[idx]);
-        double temp = 0;
-        for (auto idx : used_idx) {
-            auto q = finished_pos[idx];
-            temp += (double)temperature[q.y][q.x] / dist(pos, q) / sum;
-        }
-        return round(temp);
-    }
-
     std::vector<std::vector<int>> create_temperature() {
-        std::vector<std::vector<int>> temperature(L, std::vector<int>(L, -1));
+        std::vector<std::vector<double>> temperature(L, std::vector<double>(L, 500));
         set_landing_temperature(temperature);
-
-        std::vector<std::vector<int>> dists(L, std::vector<int>(L, L * 2));
-        for (int y = 0; y < L; ++y) {
-            for (int x = 0; x < L; ++x) {
-                for (auto&& p : landing_pos) {
-                    chmin(dists[y][x], dist_abs(Pos{y, x}, p));
-                }
-            }
-        }
-
-        std::priority_queue<std::tuple<int, int, int>> p_que;
-        for (int y = 0; y < L; ++y) {
-            for (int x = 0; x < L; ++x) {
-                if (dists[y][x] != 0)
-                    p_que.emplace(dists[y][x], y, x);
-            }
-        }
-
-        const std::array<Pos, 4> adj_pos = {Pos{1, 0}, {L - 1, 0}, {0, 1}, {0, L - 1}};
-        std::vector<Pos> finished_pos = landing_pos;
-        while (!p_que.empty()) {
-            auto [d, y, x] = p_que.top();
-            p_que.pop();
-            if (dists[y][x] != d)
-                continue;
-            Pos cur_pos{y, x};
-            temperature[y][x] = calculate_temperature(temperature, finished_pos, cur_pos);
-            finished_pos.emplace_back(cur_pos);
-            std::queue<Pos> que;
-            bitset_2d visited(L);
-            dists[y][x] = 0;
-            que.emplace(cur_pos);
-            visited.set(y, x);
-            while (!que.empty()) {
-                auto p = que.front();
-                que.pop();
-                for (auto adj : adj_pos) {
-                    int ny = p.y + adj.y, nx = p.x + adj.x;
-                    ny = (ny >= L ? ny - L : ny);
-                    nx = (nx >= L ? nx - L : nx);
-                    if (visited.get(ny, nx))
+        std::set<std::pair<int, int>> st;
+        for (auto&& p : landing_pos) st.emplace(p.pair());
+        for (int loop = 0; loop < 20 * L; ++loop) {
+            std::vector<std::vector<double>> temp = temperature;
+            const std::vector<int> dx = {1, L - 1, 0, 0}, dy = {0, 0, 1, L - 1};
+            for (int y = 0; y < L; ++y) {
+                for (int x = 0; x < L; ++x) {
+                    if (st.count({y, x}))
                         continue;
-                    visited.set(ny, nx);
-                    if (chmin(dists[ny][nx], dist_abs(cur_pos, {ny, nx}))) {
-                        p_que.emplace(dists[ny][nx], ny, nx);
-                        que.emplace(Pos{ny, nx});
+                    double sum = 0;
+                    for (int k = 0; k < 4; ++k) {
+                        int ny = y + dy[k], nx = x + dx[k];
+                        ny = ny < L ? ny : ny - L;
+                        nx = nx < L ? nx : nx - L;
+                        sum += temperature[ny][nx];
                     }
+                    temp[y][x] = sum / 4;
                 }
             }
+            temperature = temp;
         }
 
-        return temperature;
+        std::vector<std::vector<int>> res(L, std::vector<int>(L));
+        for (int y = 0; y < L; ++y) {
+            for (int x = 0; x < L; ++x) {
+                res[y][x] = temperature[y][x];
+            }
+        }
+        return res;
     }
 
     double get_mean_squared_error(const std::vector<std::vector<int>>& temperature,
@@ -343,8 +251,7 @@ struct Solver {
                     dy = xorshift() % (max_d * 2 + 1) - max_d;
                     dx = xorshift() % (max_d * 2 + 1) - max_d;
                 }
-                int measured_value = Judge::measure(i_in, dy, dx);
-                measured_values[i_in].emplace_back(Operation{dy, dx, measured_value});
+                measured_values[i_in].emplace_back(Judge::measure(i_in, dy, dx));
             }
             bool fin = true;
             std::vector<int> counter(N);
@@ -372,17 +279,6 @@ struct Solver {
         dy = dy >= 0 ? std::min(dy, L - dy) : std::min(-dy, L + dy);
         return dx * dx + dy * dy;
     }
-
-    int dist_abs(const Pos& l, const Pos& r) const {
-        int dx = l.x - r.x, dy = l.y - r.y;
-        dx = dx >= 0 ? std::min(dx, L - dx) : std::min(-dx, L + dx);
-        dy = dy >= 0 ? std::min(dy, L - dy) : std::min(-dy, L + dy);
-        return dx + dy;
-    }
-
-    int dot(const Pos& a, const Pos& b, const Pos& c) const {
-        return (b.x - a.x) * (c.x - a.x) + (b.y - a.y) * (c.y - a.y);
-    }
 };
 
 template <>
@@ -405,8 +301,7 @@ std::vector<int> Solver::predict<1>(const std::vector<std::vector<int>>& tempera
             if (measured_values[i_in].size() >= 2 && counter[estimate[i_in]] == 1)
                 continue;
             std::cout << "# measure i=" << i_in << " y=0 x=0" << std::endl;
-            int measured_value = Judge::measure(i_in, movement.y, movement.x);
-            measured_values[i_in].emplace_back(Operation{movement.y, movement.x, measured_value});
+            measured_values[i_in].emplace_back(Judge::measure(i_in, movement.y, movement.x));
         }
         bool fin = true;
         counter = std::vector<int>(N);
@@ -448,8 +343,7 @@ std::vector<int> Solver::predict<2>(const std::vector<std::vector<int>>& tempera
         for (int i_in = 0; i_in < N; i_in++) {
             if (measured_values[i_in].size() >= 5 && counter[estimate[i_in]] == 1)
                 continue;
-            int measured_value = Judge::measure(i_in, movement.y, movement.x);
-            measured_values[i_in].emplace_back(Operation{movement.y, movement.x, measured_value});
+            measured_values[i_in].emplace_back(Judge::measure(i_in, movement.y, movement.x));
         }
         bool fin = true;
         counter = std::vector<int>(N);
@@ -499,8 +393,7 @@ std::vector<int> Solver::predict<3>(const std::vector<std::vector<int>>& tempera
                         ? 0
                         : xorshift() % ((L / 2 * (L / 2 + 1)) * 2 + 1);
             auto movement = movements[r];
-            int measured_value = Judge::measure(i_in, movement.y, movement.x);
-            measured_values[i_in].emplace_back(Operation{movement.y, movement.x, measured_value});
+            measured_values[i_in].emplace_back(Judge::measure(i_in, movement.y, movement.x));
             measured[i_in] = true;
         }
         bool fin = true;
@@ -538,12 +431,117 @@ void Solver::solve() {
     Judge::answer(estimate);
 }
 
+struct OnePointSolver {
+    const std::vector<Pos> landing_pos;
+
+    OnePointSolver(const std::vector<Pos>& landing_pos) : landing_pos(landing_pos) {}
+
+    std::vector<std::vector<int>> create_temperature() const {
+        std::vector<std::vector<int>> dists(L, std::vector<int>(L));
+        for (auto&& pos : landing_pos) {
+            for (int y = 0; y < L; ++y) {
+                for (int x = 0; x < L; ++x) {
+                    dists[y][x] += pos.norm2(Pos{y, x});
+                }
+            }
+        }
+
+        int ry = 0, rx = 0;
+        int min_dist = std::numeric_limits<int>::max();
+        for (int y = 0; y < L; ++y) {
+            for (int x = 0; x < L; ++x) {
+                if (chmin(min_dist, dists[y][x]))
+                    ry = y, rx = x;
+            }
+        }
+
+        std::vector<std::vector<int>> temperature(L, std::vector<int>(L));
+        temperature[ry][rx] = 1000;
+        return temperature;
+    }
+
+    std::vector<int> predict(const std::vector<std::vector<int>>& temperature) const {
+        Pos one_point;
+        for (int y = 0; y < L; ++y) {
+            for (int x = 0; x < L; ++x) {
+                if (temperature[y][x] == 1000)
+                    one_point = Pos{y, x};
+            }
+        }
+
+        std::vector<int> ord(N);
+        std::iota(ord.begin(), ord.end(), 0);
+        std::sort(ord.begin(), ord.end(), [&](auto l, auto r) {
+            return one_point.norm1(landing_pos[l]) < one_point.norm1(landing_pos[r]);
+        });
+
+        std::vector<int> estimate(N, -1);
+        std::vector<bool> finished(N);
+        for (int i = 0; i < N; ++i) {
+            std::vector<std::vector<Operation>> operations(N);
+            for (int loop = 0; loop < 2; ++loop) {
+                for (int idx : ord) {
+                    if (finished[idx])
+                        continue;
+                    auto p = diff(one_point, landing_pos[idx]);
+                    auto op = Judge::measure(i, p.y, p.x);
+                    if (probability_greater_than(op.value) < 1e-9) {
+                        estimate[i] = idx;
+                        break;
+                    }
+                    operations[idx].emplace_back(op);
+                }
+                if (estimate[i] != -1)
+                    break;
+            }
+            if (estimate[i] == -1) {
+                double max_probability = 0;
+                for (int idx = 0; idx < N; ++idx) {
+                    if (finished[idx])
+                        continue;
+                    double p = 1;
+                    for (auto op : operations[idx]) p *= probability_less_than(op.value);
+                    if (chmax(max_probability, p))
+                        estimate[i] = idx;
+                }
+                std::cerr << i << " " << max_probability << std::endl;
+            }
+            finished[estimate[i]] = true;
+        }
+        return estimate;
+    }
+
+    void solve() {
+        const std::vector<std::vector<int>> temperature = create_temperature();
+        Judge::set_temperature(temperature);
+        const std::vector<int> estimate = predict(temperature);
+        Judge::answer(estimate);
+    }
+
+    Pos diff(const Pos& p, const Pos& q) const {
+        int dy = p.y - q.y, dx = p.x - q.x;
+        return Pos{dy >= 0 ? (dy < L - dy ? dy : dy - L) : (-dy < L + dy ? dy : dy + L),
+                   dx >= 0 ? (dx < L - dx ? dx : dx - L) : (-dx < L + dx ? dx : dx + L)};
+    }
+
+    double probability_less_than(int value, int mean = 0) const {
+        if (value == 1000)
+            return 1;
+        return (1 + std::erf((double)(value - mean) / std::sqrt(2 * S * S))) / 2;
+    }
+
+    double probability_greater_than(int value, int mean = 0) const {
+        if (value == 0)
+            return 1;
+        return (1 - std::erf((double)(value - mean) / std::sqrt(2 * S * S))) / 2;
+    }
+};
+
 int main(void) {
-    int L, N, S;  // 10 <= L <= 50, 60 <= N <= 100
     std::cin >> L >> N >> S;
     std::vector<Pos> landing_pos(N);
     for (int i = 0; i < N; i++) std::cin >> landing_pos[i].y >> landing_pos[i].x;
-    Solver solver(L, N, S, landing_pos);
+    Solver solver(landing_pos);
     solver.solve();
     std::cerr << "N = " << N << ", L = " << L << ", S = " << S
               << ", Time = " << (double)clock() / CLOCKS_PER_SEC << std::endl;

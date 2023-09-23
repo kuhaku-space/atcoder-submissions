@@ -1,6 +1,6 @@
 #line 1 "a.cpp"
-#define PROBLEM ""
-#line 2 "/home/kuhaku/atcoder/github/algo/lib/template/template.hpp"
+#define PROBLEM "https://judge.yosupo.jp/problem/bipartitematching"
+#line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
 #pragma GCC target("sse4.2,avx2,bmi2")
 #pragma GCC optimize("O3")
 #pragma GCC optimize("unroll-loops")
@@ -19,145 +19,61 @@ constexpr int MOD = 1000000007;
 constexpr int MOD_N = 998244353;
 constexpr double EPS = 1e-7;
 constexpr double PI = M_PI;
-#line 2 "/home/kuhaku/atcoder/github/algo/lib/flow/max_flow.hpp"
+#line 2 "/home/kuhaku/home/github/algo/lib/flow/hopcroft_karp.hpp"
 
-/**
- * @brief 最大流
- *
- * @tparam Cap
- */
-template <class Cap>
-struct mf_graph {
-    mf_graph() : _n(0) {}
-    explicit mf_graph(int n) : _n(n), g(n) {}
+struct hopcroft_karp {
+    hopcroft_karp(int _n, int _m) : n(_n), m(_m), g(_n), match_left(_n, -1), match_right(_m, -1) {}
 
-    int add_edge(int from, int to, Cap cap) {
-        assert(0 <= from && from < _n);
-        assert(0 <= to && to < _n);
-        assert(0 <= cap);
-        int m = int(pos.size());
-        pos.emplace_back(from, int(g[from].size()));
-        int from_id = int(g[from].size());
-        int to_id = int(g[to].size());
-        if (from == to) ++to_id;
-        g[from].emplace_back(to, to_id, cap);
-        g[to].emplace_back(from, from_id, 0);
-        return m;
+    void add_edge(int u, int v) {
+        assert(0 <= u && u < n);
+        assert(0 <= v && v < m);
+        g[u].emplace_back(v);
     }
 
-    struct edge {
-        int from, to;
-        Cap cap, flow;
-    };
+    int bipartite_matching() {
+        int flow = 0;
+        std::vector<int> root(n), prev(n), qq(n);
+        for (bool updated = true; updated;) {
+            updated = false;
+            int qi = 0, qj = 0;
+            std::fill(root.begin(), root.end(), -1);
+            std::fill(prev.begin(), prev.end(), -1);
+            for (int i = 0; i < n; i++) {
+                if (match_left[i] == -1) qq[qj++] = i, root[i] = i, prev[i] = i;
+            }
+            while (qi < qj) {
+                int u = qq[qi++];
+                if (match_left[root[u]] != -1) continue;
+                for (int v : g[u]) {
+                    if (match_right[v] == -1) {
+                        while (v != -1)
+                            match_right[v] = u, std::swap(match_left[u], v), u = prev[u];
+                        updated = true, flow++;
+                        break;
+                    }
 
-    edge get_edge(int i) {
-        int m = int(pos.size());
-        assert(0 <= i && i < m);
-        auto _e = g[pos[i].first][pos[i].second];
-        auto _re = g[_e.to][_e.rev];
-        return edge{pos[i].first, _e.to, _e.cap + _re.cap, _re.cap};
-    }
-    std::vector<edge> edges() {
-        int m = int(pos.size());
-        std::vector<edge> result;
-        for (int i = 0; i < m; ++i) {
-            result.emplace_back(get_edge(i));
-        }
-        return result;
-    }
-    void change_edge(int i, Cap new_cap, Cap new_flow) {
-        int m = int(pos.size());
-        assert(0 <= i && i < m);
-        assert(0 <= new_flow && new_flow <= new_cap);
-        auto &_e = g[pos[i].first][pos[i].second];
-        auto &_re = g[_e.to][_e.rev];
-        _e.cap = new_cap - new_flow;
-        _re.cap = new_flow;
-    }
-
-    Cap flow(int s, int t) { return flow(s, t, std::numeric_limits<Cap>::max()); }
-    Cap flow(int s, int t, Cap flow_limit) {
-        assert(0 <= s && s < _n);
-        assert(0 <= t && t < _n);
-        assert(s != t);
-
-        std::vector<int> level(_n), iter(_n);
-        auto bfs = [&]() {
-            std::fill(level.begin(), level.end(), -1);
-            level[s] = 0;
-            std::queue<int> que;
-            que.emplace(s);
-            while (!que.empty()) {
-                int v = que.front();
-                que.pop();
-                for (auto e : g[v]) {
-                    if (e.cap == 0 || level[e.to] >= 0) continue;
-                    level[e.to] = level[v] + 1;
-                    if (e.to == t) return;
-                    que.emplace(e.to);
+                    if (prev[match_right[v]] == -1)
+                        v = match_right[v], prev[v] = u, root[v] = root[u], qq[qj++] = v;
                 }
             }
-        };
-        auto dfs = [&](auto self, int v, Cap up) {
-            if (v == s) return up;
-            Cap res = 0;
-            int level_v = level[v];
-            for (int &i = iter[v]; i < int(g[v].size()); ++i) {
-                _edge &e = g[v][i];
-                if (level_v <= level[e.to] || g[e.to][e.rev].cap == 0) continue;
-                Cap d = self(self, e.to, std::min(up - res, g[e.to][e.rev].cap));
-                if (d <= 0) continue;
-                g[v][i].cap += d;
-                g[e.to][e.rev].cap -= d;
-                res += d;
-                if (res == up) return res;
-            }
-            level[v] = _n;
-            return res;
-        };
-
-        Cap flow = 0;
-        while (flow < flow_limit) {
-            bfs();
-            if (level[t] == -1) break;
-            std::fill(iter.begin(), iter.end(), 0);
-            Cap f = dfs(dfs, t, flow_limit - flow);
-            if (!f) break;
-            flow += f;
         }
         return flow;
     }
 
-    std::vector<bool> min_cut(int s) {
-        std::vector<bool> visited(_n);
-        std::queue<int> que;
-        que.emplace(s);
-        while (!que.empty()) {
-            int p = que.front();
-            que.pop();
-            visited[p] = true;
-            for (auto e : g[p]) {
-                if (e.cap && !visited[e.to]) {
-                    visited[e.to] = true;
-                    que.emplace(e.to);
-                }
-            }
+    std::vector<std::pair<int, int>> get_pairs() const {
+        std::vector<std::pair<int, int>> res;
+        for (int i = 0; i < n; i++) {
+            if (~match_left[i]) res.emplace_back(i, match_left[i]);
         }
-        return visited;
+        return res;
     }
 
   private:
-    int _n;
-    struct _edge {
-        int to, rev;
-        Cap cap;
-
-        constexpr _edge(int _to, int _rev, Cap _cap) : to(_to), rev(_rev), cap(_cap) {}
-    };
-    std::vector<std::pair<int, int>> pos;
-    std::vector<std::vector<_edge>> g;
+    const int n, m;
+    std::vector<std::vector<int>> g;
+    std::vector<int> match_left, match_right;
 };
-#line 2 "/home/kuhaku/atcoder/github/algo/lib/string/converter.hpp"
+#line 2 "/home/kuhaku/home/github/algo/lib/string/converter.hpp"
 
 struct string_converter {
     char type(const char &c) const {
@@ -200,7 +116,7 @@ struct string_converter {
   private:
     char start = 0;
 } to_int;
-#line 3 "/home/kuhaku/atcoder/github/algo/lib/template/macro.hpp"
+#line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
 #define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
 #define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
 #define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
@@ -209,7 +125,7 @@ struct string_converter {
 #define repr(i, n) FORR (i, n, 0)
 #define repnr(i, n) FORR (i, n + 1, 1)
 #define all(s) (s).begin(), (s).end()
-#line 3 "/home/kuhaku/atcoder/github/algo/lib/template/sonic.hpp"
+#line 3 "/home/kuhaku/home/github/algo/lib/template/sonic.hpp"
 struct Sonic {
     Sonic() {
         std::ios::sync_with_stdio(false);
@@ -218,7 +134,7 @@ struct Sonic {
 
     constexpr void operator()() const {}
 } sonic;
-#line 5 "/home/kuhaku/atcoder/github/algo/lib/template/atcoder.hpp"
+#line 5 "/home/kuhaku/home/github/algo/lib/template/atcoder.hpp"
 using namespace std;
 using ll = std::int64_t;
 using ld = long double;
@@ -287,27 +203,13 @@ int main(void) {
     cin >> s;
     auto t = to_int(s, '0');
 
-    vector pos(10, vector(n, vector<int>()));
-    rep (i, n) {
-        rep (j, m) {
-            if ((int)pos[t[i][j]][i].size() < n)
-                pos[t[i][j]][i].emplace_back(j);
-        }
-    }
-
-    rep (i, 10) {
-        rep (j, n) {
-            if (pos[i][j].empty())
-                continue;
-            if ((int)pos[i][j].size() < n) {
-                int idx = 0;
-                while (pos[i][j].size() < n) pos[i][j].emplace_back(pos[i][j][idx++] + m);
-            }
-        }
-    }
     auto valid = [&](int d) {
         rep (i, n) {
-            if (pos[d][i].empty())
+            bool flag = false;
+            rep (j, m) {
+                flag |= t[i][j] == d;
+            }
+            if (!flag)
                 return false;
         }
         return true;
@@ -321,7 +223,15 @@ int main(void) {
         if (!valid(d))
             continue;
 
-        vector v = pos[d];
+        vector v(n, vector<int>());
+        rep (i, n) {
+            rep (j, m) {
+                if (t[i][j] == d)
+                    v[i].emplace_back(j);
+            }
+            int idx = 0;
+            while ((int)v[i].size() < n) v[i].emplace_back(v[i][idx++] + m);
+        }
         vector<int> u;
         rep (i, n) u.insert(u.end(), all(v[i]));
         sort(all(u));
@@ -337,18 +247,15 @@ int main(void) {
 
         auto check = [&](int mid) {
             int s = upper_bound(all(u), mid) - u.begin();
-            mf_graph<int> mf(n + s + 2);
-            int st = n + s, gl = st + 1;
-            rep (i, n) mf.add_edge(st, i, 1);
-            rep (i, s) mf.add_edge(n + i, gl, 1);
+            hopcroft_karp hk(n, s);
             rep (i, n) {
                 for (auto idx : w[i]) {
                     if (u[idx] > mid)
                         break;
-                    mf.add_edge(i, n + idx, 1);
+                    hk.add_edge(i, idx);
                 }
             }
-            return (mf.flow(st, gl) >= n);
+            return (hk.bipartite_matching() >= n);
         };
 
         if (ans != Inf && !check(ans))

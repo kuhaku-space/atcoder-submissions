@@ -39,66 +39,56 @@ struct Xorshift {
     }
 
     result_type rand_range(int a, int b) { return a + operator()() % (b - a + 1); }
-    double rand_d() { return (double)operator()() / max(); }
+    double random() { return (double)operator()() / max(); }
 
   private:
     result_type x, y, z, w;
-};
+} xor128;
 
 using namespace std::chrono;
 
+template <int TL>
 struct Timer {
+    static bool is_completed() { return system_clock::now() >= ending_time; }
+
     Timer() : start(system_clock::now()) {}
 
-    std::int64_t operator()() const { return get_time(); }
-
-    std::int64_t get_time() const {
-        return duration_cast<milliseconds>(system_clock::now() - start).count();
+    double rate() const {
+        return (double)duration_cast<milliseconds>(system_clock::now() - start).count() /
+               duration_cast<milliseconds>(ending_time - start).count();
     }
 
     void reset() { start = system_clock::now(); }
 
   private:
+    inline static system_clock::time_point ending_time = system_clock::now() + milliseconds{TL};
+
     system_clock::time_point start;
 };
 
 template <int TL>
-struct SA {
-    SA() : timer(), xor128() {}
+struct temperature_manager {
+    temperature_manager() : timer(), temperature(), threshold() {}
 
-    auto get_time() { return timer.get_time(); }
-
-    /**
-     * @brief 温度関数
-     *
-     * @param t 時間
-     * @return double
-     */
-    double temperature(double t) {
-        t /= TL;
-        return std::pow(T0, 1.0 - t) * std::pow(T1, t);
+    void set() {
+        double t = timer.rate();
+        temperature = std::pow(T0, 1.0 - t) * std::pow(T1, t);
+        set_threshold();
     }
-    double temperature() { return temperature(get_time()); }
 
-    /**
-     * @brief 遷移関数
-     *
-     * @tparam T スコアの型
-     * @param diff_score 差分スコア
-     * @param temp 温度
-     * @return true
-     * @return false
-     */
+    void set_threshold() { threshold = temperature * std::log(xor128.random()); }
+
     template <class T>
-    bool is_update(T diff_score, double temp) {
-        if (diff_score >= 0) return true;
-        return std::exp((double)diff_score / temp) >= xor128.rand_d();
+    bool is_update(T diff_score) {
+        if (diff_score >= threshold) return set_threshold(), true;
+        return false;
     }
 
   private:
-    static constexpr double T0 = 2e3, T1 = 6e2;
-    Timer timer;
-    Xorshift xor128;
+    static constexpr double T0 = 1.7e3, T1 = 6e2;
+    Timer<TL> timer;
+    double temperature;
+    double threshold;
 };
 
 template <class T>
@@ -115,6 +105,7 @@ struct Trace {
 };
 
 }  // namespace lib
+using namespace lib;
 
 constexpr int CONTEST_SIZE = 26;
 constexpr int D = 365;
@@ -126,7 +117,7 @@ struct Operation {
     int d, t;
 };
 
-lib::Trace<Operation> trace;
+Trace<Operation> trace;
 
 template <int BEAM_SIZE>
 struct beam_search {
@@ -176,23 +167,29 @@ struct beam_search {
         std::array<State, BEAM_SIZE> cur, nxt;
         cur[0] = State();
         int cur_size = 1;
+        std::array<std::tuple<int, int, int>, BEAM_SIZE * 2 + CONTEST_SIZE> eval_que;
         for (int d = 0; d < D; ++d) {
-            std::vector<std::tuple<int, int, Operation>> eval_que;
-            eval_que.reserve(cur_size * CONTEST_SIZE);
+            int que_idx = 0;
             for (int i = 0; i < cur_size; ++i) {
                 for (int t = 0; t < CONTEST_SIZE; ++t) {
                     int eval = cur[i].next_eval(d, t);
-                    eval_que.emplace_back(eval, i, Operation{d, t});
+                    eval_que[que_idx++] = std::make_tuple(eval, i, t);
+                }
+                if (que_idx >= BEAM_SIZE * 2) {
+                    std::nth_element(
+                        eval_que.begin(), eval_que.begin() + BEAM_SIZE, eval_que.end(),
+                        [](auto x, auto y) { return std::get<0>(x) > std::get<0>(y); });
+                    que_idx = BEAM_SIZE;
                 }
             }
-            if (eval_que.size() > BEAM_SIZE) {
+            if (que_idx > BEAM_SIZE) {
                 std::nth_element(eval_que.begin(), eval_que.begin() + BEAM_SIZE, eval_que.end(),
                                  [](auto x, auto y) { return std::get<0>(x) > std::get<0>(y); });
             }
             int nxt_size = std::min(BEAM_SIZE, (int)eval_que.size());
             for (int i = 0; i < nxt_size; ++i) {
-                auto &&[eval, prev_idx, operation] = eval_que[i];
-                nxt[i] = cur[prev_idx].apply(operation);
+                auto &&[eval, prev_idx, t] = eval_que[i];
+                nxt[i] = cur[prev_idx].apply(Operation{d, t});
             }
             std::swap(cur, nxt);
             cur_size = nxt_size;
@@ -202,12 +199,13 @@ struct beam_search {
         for (int i = 1; i < cur_size; ++i) {
             if (chmax(max_eval, cur[i].eval())) idx = i;
         }
+        std::cerr << "BeamScore = " << max_eval + 1000000 << std::endl;
         return cur[idx].answer();
     }
 };
 
 template <int TL>
-struct annealing {
+struct simulated_annealing {
     struct State {
         int score;
         std::array<char, D> ans;
@@ -215,9 +213,9 @@ struct annealing {
 
         State(const std::array<char, D> &arr) : ans(arr) {}
 
-        auto get_score() const { return score; }
+        int get_score() const { return score; }
 
-        auto get_char(int d) const { return ans[d]; }
+        char get_char(int d) const { return ans[d]; }
 
         void build() {
             score = 0;
@@ -234,8 +232,8 @@ struct annealing {
             for (int i = 0; i < CONTEST_SIZE; ++i) { memo[i].emplace_back(D); }
         }
 
-        auto update(int d, char e) {
-            auto a = ans[d];
+        char update(int d, char e) {
+            char a = ans[d];
             if (a == e) return a;
             auto it = lower_bound(memo[a].begin(), memo[a].end(), d);
             auto ne = *next(it), pr = *prev(it);
@@ -251,26 +249,21 @@ struct annealing {
         }
     };
 
-    lib::SA<TL> sa;
-    lib::Xorshift xor128;
-
-    int get_time() { return sa.get_time(); }
-
     int solve(std::array<char, D> &ans) {
         State state(ans);
         state.build();
         int max_score = state.get_score();
 
         int score = max_score;
-        while (sa.get_time() < TL) {
-            double temp = sa.temperature();
+        while (!Timer<TL>::is_completed()) {
+            sa.set();
             for (int loop = 0; loop < 300; ++loop) {
                 if (xor128() % 2) {
                     int d = xor128() % D;
                     char e = xor128() % CONTEST_SIZE;
                     auto p = state.update(d, e);
                     int new_score = state.get_score();
-                    if (!sa.is_update(new_score - score, temp)) {
+                    if (!sa.is_update(new_score - score)) {
                         state.update(d, p);
                     } else {
                         score = new_score;
@@ -278,11 +271,11 @@ struct annealing {
                 } else {
                     int d1 = xor128() % (D - 1);
                     int d2 = std::min((int)(d1 + 1 + xor128() % 10), D - 1);
-                    auto q = state.get_char(d2);
-                    auto p = state.update(d1, q);
+                    char q = state.get_char(d2);
+                    char p = state.update(d1, q);
                     q = state.update(d2, p);
                     int new_score = state.get_score();
-                    if (!sa.is_update(new_score - score, temp)) {
+                    if (!sa.is_update(new_score - score)) {
                         state.update(d1, p);
                         state.update(d2, q);
                     } else {
@@ -296,19 +289,10 @@ struct annealing {
 
         return max_score;
     }
-};
 
-int calc_score(const std::array<char, D> &ans) {
-    int score = 1000000, sum = 0;
-    std::array<short, CONTEST_SIZE> last{};
-    for (int d = 0; d < D; ++d) {
-        int t = ans[d];
-        sum += SUM - C[t] * (d + 1 - last[t]);
-        score += S[d][t] - sum;
-        last[t] = d + 1;
-    }
-    return score;
-}
+  private:
+    temperature_manager<TL> sa;
+};
 
 int main(void) {
     int tmp;
@@ -320,9 +304,9 @@ int main(void) {
     }
 
     beam_search<4000> solver1;
-    annealing<1985> solver2;
     auto ans = solver1.solve();
-    std::cerr << (double)clock() / CLOCKS_PER_SEC << ' ' << calc_score(ans) << std::endl;
+    std::cerr << "Time = " << (double)clock() / CLOCKS_PER_SEC << std::endl;
+    simulated_annealing<1995> solver2;
     std::cerr << "Score = " << solver2.solve(ans) + 1000000 << std::endl;
     for (auto i : ans) std::cout << (int)i + 1 << std::endl;
 

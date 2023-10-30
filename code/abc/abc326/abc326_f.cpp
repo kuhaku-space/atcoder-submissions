@@ -113,7 +113,7 @@ pair<bool, ll> ok(vector<ll> v, ll s) {
     }
     int n1 = v.size() / 2;
     int n2 = v.size() - n1;
-    unordered_map<ll, ll> mp;
+    map<ll, ll> mp;
     rep (bit, 1 << n1) {
         ll x = 0;
         rep (i, n1) {

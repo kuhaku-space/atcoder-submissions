@@ -1,26 +1,23 @@
 #line 1 "a.cpp"
 #define PROBLEM ""
-#line 2 "/home/kuhaku/atcoder/github/algo/lib/template/template.hpp"
+#line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
 #pragma GCC target("sse4.2,avx2,bmi2")
 #pragma GCC optimize("O3")
 #pragma GCC optimize("unroll-loops")
 #include <bits/stdc++.h>
-using namespace std;
 template <class T, class U>
-bool chmax(T &a, const U &b) {
+constexpr bool chmax(T &a, const U &b) {
     return a < (T)b ? a = (T)b, true : false;
 }
 template <class T, class U>
-bool chmin(T &a, const U &b) {
+constexpr bool chmin(T &a, const U &b) {
     return (T)b < a ? a = (T)b, true : false;
 }
-constexpr int64_t INF = 1000000000000000003;
+constexpr std::int64_t INF = 1000000000000000003;
 constexpr int Inf = 1000000003;
-constexpr int MOD = 1000000007;
-constexpr int MOD_N = 998244353;
 constexpr double EPS = 1e-7;
 constexpr double PI = M_PI;
-#line 3 "/home/kuhaku/atcoder/github/algo/lib/template/macro.hpp"
+#line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
 #define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
 #define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
 #define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
@@ -29,17 +26,19 @@ constexpr double PI = M_PI;
 #define repr(i, n) FORR (i, n, 0)
 #define repnr(i, n) FORR (i, n + 1, 1)
 #define all(s) (s).begin(), (s).end()
-#line 3 "/home/kuhaku/atcoder/github/algo/lib/template/sonic.hpp"
+#line 3 "/home/kuhaku/home/github/algo/lib/template/sonic.hpp"
 struct Sonic {
     Sonic() {
         std::ios::sync_with_stdio(false);
         std::cin.tie(nullptr);
+        std::cout << std::fixed << std::setprecision(20);
     }
 
     constexpr void operator()() const {}
 } sonic;
-#line 5 "/home/kuhaku/atcoder/github/algo/lib/template/atcoder.hpp"
-using ll = int64_t;
+#line 5 "/home/kuhaku/home/github/algo/lib/template/atcoder.hpp"
+using namespace std;
+using ll = std::int64_t;
 using ld = long double;
 template <class T, class U>
 std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
@@ -76,9 +75,6 @@ auto make_vector(T x, int arg, Args... args) {
     if constexpr (sizeof...(args) == 0) return std::vector<T>(arg, x);
     else return std::vector(arg, make_vector<T>(x, args...));
 }
-void setp(int n) {
-    std::cout << std::fixed << std::setprecision(n);
-}
 void Yes(bool is_correct = true) {
     std::cout << (is_correct ? "Yes" : "No") << '\n';
 }
@@ -99,11 +95,21 @@ void Aoki(bool is_not_correct = true) {
 }
 #line 3 "a.cpp"
 
+bool comp(const std::vector<ll> &a, const std::vector<ll> &b) {
+    if (a.size() != b.size())
+        return a.size() < b.size();
+    for (int i = a.size() - 1; i >= 0; --i) {
+        if (a[i] != b[i])
+            return a[i] < b[i];
+    }
+    return false;
+}
+
 void solve() {
     ll x;
     cin >> x;
-    set<ll> ans;
-    FOR (d, 2, 2000) {
+    vector<ll> ans;
+    FOR (d, 2, 1001) {
         ll y = x;
         while (y) {
             if (y % d >= 2)
@@ -111,42 +117,27 @@ void solve() {
             y /= d;
         }
         if (!y)
-            ans.emplace(d);
+            ans.emplace_back(d);
     }
+    int n = ans.size();
 
     FOR (bit, 2, 64) {
         ll l = 2, r = x + 1;
+        vector<ll> u;
+        ll b = bit;
+        while (b) {
+            u.emplace_back(b & 1);
+            b >>= 1;
+        }
         while (r - l > 1) {
             ll m = (l + r) / 2;
             ll y = x;
-            vector<ll> v, u;
+            vector<ll> v;
             while (y) {
                 v.emplace_back(y % m);
                 y /= m;
             }
-            ll b = bit;
-            while (b) {
-                u.emplace_back(b & 1);
-                b >>= 1;
-            }
-            while (v.size() < u.size()) {
-                v.emplace_back(0);
-            }
-            while (u.size() < v.size()) {
-                u.emplace_back(0);
-            }
-            reverse(all(v));
-            reverse(all(u));
-            bool flag = false;
-            rep (i, v.size()) {
-                if (v[i] < u[i]) {
-                    flag = true;
-                    break;
-                } else if (v[i] > u[i]) {
-                    break;
-                }
-            }
-            if (flag)
+            if (comp(v, u))
                 r = m;
             else
                 l = m;
@@ -158,10 +149,13 @@ void solve() {
                 break;
             y /= l;
         }
-        if (!y) {
-            ans.emplace(l);
-        }
+        if (!y)
+            ans.emplace_back(l);
     }
+    reverse(ans.begin() + n, ans.end());
+    inplace_merge(ans.begin(), ans.begin() + n, ans.end());
+    ans.erase(unique(all(ans)), ans.end());
+
     co(ans.size());
 }
 

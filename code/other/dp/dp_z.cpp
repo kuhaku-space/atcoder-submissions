@@ -6,17 +6,15 @@
 #pragma GCC optimize("unroll-loops")
 #include <bits/stdc++.h>
 template <class T, class U>
-bool chmax(T &a, const U &b) {
+constexpr bool chmax(T &a, const U &b) {
     return a < (T)b ? a = (T)b, true : false;
 }
 template <class T, class U>
-bool chmin(T &a, const U &b) {
+constexpr bool chmin(T &a, const U &b) {
     return (T)b < a ? a = (T)b, true : false;
 }
 constexpr std::int64_t INF = 1000000000000000003;
 constexpr int Inf = 1000000003;
-constexpr int MOD = 1000000007;
-constexpr int MOD_N = 998244353;
 constexpr double EPS = 1e-7;
 constexpr double PI = M_PI;
 #line 3 "/home/kuhaku/home/github/algo/lib/data_structure/li_chao_tree.hpp"
@@ -149,6 +147,7 @@ struct Sonic {
     Sonic() {
         std::ios::sync_with_stdio(false);
         std::cin.tie(nullptr);
+        std::cout << std::fixed << std::setprecision(20);
     }
 
     constexpr void operator()() const {}
@@ -192,9 +191,6 @@ auto make_vector(T x, int arg, Args... args) {
     if constexpr (sizeof...(args) == 0) return std::vector<T>(arg, x);
     else return std::vector(arg, make_vector<T>(x, args...));
 }
-void setp(int n) {
-    std::cout << std::fixed << std::setprecision(n);
-}
 void Yes(bool is_correct = true) {
     std::cout << (is_correct ? "Yes" : "No") << '\n';
 }
@@ -222,15 +218,16 @@ int main(void) {
     vector<ll> h(n);
     cin >> h;
 
-    li_chao_tree lct(0, Inf);
-    vector<ll> dp(n);
-    lct.add_line(-2 * h[0], h[0] * h[0] + c);
-    repn (i, n - 1) {
-        dp[i] = lct.query(h[i]) + h[i] * h[i];
-        lct.add_line(-2 * h[i], h[i] * h[i] + c + dp[i]);
+    li_chao_tree lct(1000001);
+    rep (i, n - 1) {
+        if (i == 0) {
+            lct.add_line(-2 * h[i], h[i] * h[i]);
+        } else {
+            ll x = lct.query(h[i]) + h[i] * h[i] + c;
+            lct.add_line(-2 * h[i], h[i] * h[i] + x);
+        }
     }
-    // ce(dp);
-    co(dp[n - 1]);
+    co(lct.query(h[n - 1]) + h[n - 1] * h[n - 1] + c);
 
     return 0;
 }

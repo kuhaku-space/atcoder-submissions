@@ -6,17 +6,15 @@
 #pragma GCC optimize("unroll-loops")
 #include <bits/stdc++.h>
 template <class T, class U>
-bool chmax(T &a, const U &b) {
+constexpr bool chmax(T &a, const U &b) {
     return a < (T)b ? a = (T)b, true : false;
 }
 template <class T, class U>
-bool chmin(T &a, const U &b) {
+constexpr bool chmin(T &a, const U &b) {
     return (T)b < a ? a = (T)b, true : false;
 }
 constexpr std::int64_t INF = 1000000000000000003;
 constexpr int Inf = 1000000003;
-constexpr int MOD = 1000000007;
-constexpr int MOD_N = 998244353;
 constexpr double EPS = 1e-7;
 constexpr double PI = M_PI;
 #line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
@@ -33,6 +31,7 @@ struct Sonic {
     Sonic() {
         std::ios::sync_with_stdio(false);
         std::cin.tie(nullptr);
+        std::cout << std::fixed << std::setprecision(20);
     }
 
     constexpr void operator()() const {}
@@ -76,9 +75,6 @@ auto make_vector(T x, int arg, Args... args) {
     if constexpr (sizeof...(args) == 0) return std::vector<T>(arg, x);
     else return std::vector(arg, make_vector<T>(x, args...));
 }
-void setp(int n) {
-    std::cout << std::fixed << std::setprecision(n);
-}
 void Yes(bool is_correct = true) {
     std::cout << (is_correct ? "Yes" : "No") << '\n';
 }
@@ -99,22 +95,29 @@ void Aoki(bool is_not_correct = true) {
 }
 #line 3 "a.cpp"
 
+struct S {
+    int w, s, v;
+};
+
 int main(void) {
     int n;
     cin >> n;
-    vector<tuple<int, int, int>> a(n);
-    for (auto &[w, s, v] : a) {
+    vector<S> a(n);
+    rep (i, n) {
+        int w, s, v;
         cin >> w >> s >> v;
+        a[i] = S{w, s, v};
     }
-
-    sort(all(a), [](auto x, auto y) {
-        return get<0>(x) + get<1>(x) < get<0>(y) + get<1>(y);
+    sort(all(a), [](auto l, auto r) {
+        return l.s + l.w < r.s + r.w;
     });
 
-    vector<ll> dp(20001, -INF);
+    vector<ll> dp(10002, -INF);
     dp[0] = 0;
-    for (auto [w, s, v] : a) {
-        repr (i, s + 1) chmax(dp[i + w], dp[i] + v);
+    rep (i, n) {
+        repr (j, a[i].s + 1) {
+            chmax(dp[min(j + a[i].w, 10001)], dp[j] + a[i].v);
+        }
     }
     co(*max_element(all(dp)));
 

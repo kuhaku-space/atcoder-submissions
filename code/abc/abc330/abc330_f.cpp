@@ -1,0 +1,154 @@
+#line 1 "a.cpp"
+#define PROBLEM ""
+#line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
+#pragma GCC target("sse4.2,avx2,bmi2")
+#pragma GCC optimize("O3")
+#pragma GCC optimize("unroll-loops")
+#include <bits/stdc++.h>
+template <class T, class U>
+constexpr bool chmax(T &a, const U &b) {
+    return a < (T)b ? a = (T)b, true : false;
+}
+template <class T, class U>
+constexpr bool chmin(T &a, const U &b) {
+    return (T)b < a ? a = (T)b, true : false;
+}
+constexpr std::int64_t INF = 1000000000000000003;
+constexpr int Inf = 1000000003;
+constexpr double EPS = 1e-7;
+constexpr double PI = M_PI;
+#line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
+#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
+#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
+#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
+#define rep(i, n) FOR (i, 0, n)
+#define repn(i, n) FOR (i, 1, n + 1)
+#define repr(i, n) FORR (i, n, 0)
+#define repnr(i, n) FORR (i, n + 1, 1)
+#define all(s) (s).begin(), (s).end()
+#line 3 "/home/kuhaku/home/github/algo/lib/template/sonic.hpp"
+struct Sonic {
+    Sonic() {
+        std::ios::sync_with_stdio(false);
+        std::cin.tie(nullptr);
+        std::cout << std::fixed << std::setprecision(20);
+    }
+
+    constexpr void operator()() const {}
+} sonic;
+#line 5 "/home/kuhaku/home/github/algo/lib/template/atcoder.hpp"
+using namespace std;
+using ll = std::int64_t;
+using ld = long double;
+template <class T, class U>
+std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
+    return is >> p.first >> p.second;
+}
+template <class T>
+std::istream &operator>>(std::istream &is, std::vector<T> &v) {
+    for (T &i : v) is >> i;
+    return is;
+}
+template <class T, class U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
+    return os << '(' << p.first << ',' << p.second << ')';
+}
+template <class T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+    for (auto it = v.begin(); it != v.end(); ++it) {
+        os << (it == v.begin() ? "" : " ") << *it;
+    }
+    return os;
+}
+template <class Head, class... Tail>
+void co(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
+    else std::cout << head << ' ', co(std::forward<Tail>(tail)...);
+}
+template <class Head, class... Tail>
+void ce(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
+    else std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
+}
+template <typename T, typename... Args>
+auto make_vector(T x, int arg, Args... args) {
+    if constexpr (sizeof...(args) == 0) return std::vector<T>(arg, x);
+    else return std::vector(arg, make_vector<T>(x, args...));
+}
+void Yes(bool is_correct = true) {
+    std::cout << (is_correct ? "Yes" : "No") << '\n';
+}
+void No(bool is_not_correct = true) {
+    Yes(!is_not_correct);
+}
+void YES(bool is_correct = true) {
+    std::cout << (is_correct ? "YES" : "NO") << '\n';
+}
+void NO(bool is_not_correct = true) {
+    YES(!is_not_correct);
+}
+void Takahashi(bool is_correct = true) {
+    std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n';
+}
+void Aoki(bool is_not_correct = true) {
+    Takahashi(!is_not_correct);
+}
+#line 3 "a.cpp"
+
+int main(void) {
+    int n;
+    ll k;
+    cin >> n >> k;
+    if (n == 1) {
+        co(0);
+        return 0;
+    }
+    vector<int> x(n), y(n);
+    rep (i, n) cin >> x[i] >> y[i];
+    sort(all(x));
+    sort(all(y));
+    vector<int> cx(n), cy(n);
+    rep (i, n - 1) {
+        cx[i + 1] = x[i + 1] - x[i];
+        cy[i + 1] = y[i + 1] - y[i];
+    }
+    rep (i, n / 2) {
+        cx[i + 1] += cx[n - 1 - i];
+        cy[i + 1] += cy[n - 1 - i];
+    }
+    cx.erase(cx.end() - n / 2, cx.end());
+    cy.erase(cy.end() - n / 2, cy.end());
+    vector<ll> sx(cx.size()), sy(cy.size());
+    rep (i, cx.size()) sx[i] = (ll)cx[i] * i;
+    rep (i, sy.size()) sy[i] = (ll)cy[i] * i;
+    inclusive_scan(all(cx), cx.begin());
+    inclusive_scan(all(cy), cy.begin());
+    inclusive_scan(all(sx), sx.begin());
+    inclusive_scan(all(sy), sy.begin());
+
+    int dx = x.back() - x.front(), dy = y.back() - y.front();
+    auto get_x = [&](int t) -> ll {
+        if (t <= 0)
+            return 0;
+        auto it = upper_bound(all(cx), t) - cx.begin() - 1;
+        return sx[it] + ll(t - cx[it]) * (it + 1);
+    };
+    auto get_y = [&](int t) -> ll {
+        if (t <= 0)
+            return 0;
+        auto it = upper_bound(all(cy), t) - cy.begin() - 1;
+        return sy[it] + ll(t - cy[it]) * (it + 1);
+    };
+    auto check = [&](int m) {
+        return get_x(dx - m) + get_y(dy - m) <= k;
+    };
+
+    int l = -1, r = Inf;
+    while (r - l > 1) {
+        int m = (l + r) / 2;
+        (check(m) ? r : l) = m;
+    }
+    co(r);
+
+    return 0;
+}

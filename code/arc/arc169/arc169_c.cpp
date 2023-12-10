@@ -707,7 +707,7 @@ int main(void) {
                     dp[j].emplace(sum - s[j]);
                     s[j] += dp[j].back();
                 } else {
-                    dp[j] = queue<Mint>();
+                    while (!dp[j].empty()) dp[j].pop();
                     s[j] = 0;
                 }
             }

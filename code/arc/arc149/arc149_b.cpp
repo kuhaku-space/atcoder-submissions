@@ -1,5 +1,56 @@
 #line 1 "a.cpp"
 #define PROBLEM ""
+#line 1 "/home/kuhaku/home/github/algo/lib/algorithm/lis.hpp"
+#include <algorithm>
+#include <iterator>
+#include <vector>
+
+/**
+ * @brief 最長増加部分列
+ *
+ * @tparam T 配列の型
+ * @param v 配列
+ * @retval int 最長増加部分列の長さ
+ */
+template <class T>
+int longest_increasing_subsequence(const std::vector<T> &v) {
+    int n = v.size();
+    std::vector<T> dp;
+    for (auto x : v) {
+        auto it = std::lower_bound(std::begin(dp), std::end(dp), x);
+        if (it == std::end(dp)) dp.emplace_back(x);
+        else *it = x;
+    }
+    return dp.size();
+}
+
+/**
+ * @brief 最長増加部分列
+ *
+ * @tparam T 配列の型
+ * @param v 配列
+ * @retval std::vector<int> 最長増加部分列のインデックス
+ */
+template <class T>
+std::vector<int> make_lis(const std::vector<T> &v) {
+    int n = v.size();
+    std::vector<T> dp;
+    std::vector<int> pos;
+    pos.reserve(n);
+    for (auto x : v) {
+        auto it = std::lower_bound(std::begin(dp), std::end(dp), x);
+        pos.emplace_back(std::distance(std::begin(dp), it));
+        if (it == std::end(dp)) dp.emplace_back(x);
+        else *it = x;
+    }
+
+    int x = dp.size();
+    std::vector<int> res(x--);
+    for (int i = n - 1; i >= 0; --i) {
+        if (pos[i] == x) res[x] = i, --x;
+    }
+    return res;
+}
 #line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
 #pragma GCC target("sse4.2,avx2,bmi2")
 #pragma GCC optimize("O3")
@@ -93,36 +144,25 @@ void Takahashi(bool is_correct = true) {
 void Aoki(bool is_not_correct = true) {
     Takahashi(!is_not_correct);
 }
-#line 3 "a.cpp"
-
-ll f(ll n, ll m) {
-    ll res = 0;
-    repr (bit, 32) {
-        if (res >= n)
-            break;
-        if ((n | m) >> bit & 1)
-            res |= 1 << bit;
-    }
-    return res | m;
-}
+#line 4 "a.cpp"
 
 int main(void) {
-    int n, k;
-    ll m;
-    cin >> n >> m >> k;
-    vector<ll> a(n);
-    cin >> a;
+    int n;
+    cin >> n;
+    vector<pair<int, int>> p(n);
+    rep (i, n) cin >> p[i].first;
+    rep (i, n) cin >> p[i].second;
 
-    ll ans = 0;
-    repr (bit, 31) {
-        vector<ll> s(n);
-        ans += 1L << bit;
-        rep (i, n) s[i] = f(a[i], ans) - a[i];
-        sort(all(s));
-        if (m < accumulate(s.begin(), s.begin() + k, 0L)) {
-            ans -= 1L << bit;
-        }
-    }
+    int ans = 0;
+    sort(all(p));
+    vector<int> a(n);
+    rep (i, n) a[i] = p[i].second;
+    chmax(ans, n + longest_increasing_subsequence(a));
+    sort(all(p), [](auto l, auto r) {
+        return l.second < r.second;
+    });
+    rep (i, n) a[i] = p[i].first;
+    chmax(ans, n + longest_increasing_subsequence(a));
     co(ans);
 
     return 0;

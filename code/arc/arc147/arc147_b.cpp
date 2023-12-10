@@ -93,37 +93,75 @@ void Takahashi(bool is_correct = true) {
 void Aoki(bool is_not_correct = true) {
     Takahashi(!is_not_correct);
 }
-#line 3 "a.cpp"
+#line 3 "/home/kuhaku/home/github/algo/lib/template/vector.hpp"
 
-ll f(ll n, ll m) {
-    ll res = 0;
-    repr (bit, 32) {
-        if (res >= n)
-            break;
-        if ((n | m) >> bit & 1)
-            res |= 1 << bit;
+struct increment_impl {
+    template <class T>
+    const increment_impl &operator>>(std::vector<T> &v) const {
+        for (auto &x : v) ++x;
+        return *this;
     }
-    return res | m;
-}
+} Inc;
+
+struct decrement_impl {
+    template <class T>
+    const decrement_impl &operator>>(std::vector<T> &v) const {
+        for (auto &x : v) --x;
+        return *this;
+    }
+} Dec;
+
+struct sort_impl {
+    template <class T>
+    const sort_impl &operator>>(std::vector<T> &v) const {
+        std::sort(v.begin(), v.end());
+        return *this;
+    }
+} Sort;
+
+struct unique_impl {
+    template <class T>
+    const unique_impl &operator>>(std::vector<T> &v) const {
+        std::sort(v.begin(), v.end());
+        v.erase(std::unique(v.begin(), v.end()), v.end());
+        return *this;
+    }
+} Uniq;
+#line 4 "a.cpp"
 
 int main(void) {
-    int n, k;
-    ll m;
-    cin >> n >> m >> k;
-    vector<ll> a(n);
+    int n;
+    cin >> n;
+    vector<int> a(n);
     cin >> a;
-
-    ll ans = 0;
-    repr (bit, 31) {
-        vector<ll> s(n);
-        ans += 1L << bit;
-        rep (i, n) s[i] = f(a[i], ans) - a[i];
-        sort(all(s));
-        if (m < accumulate(s.begin(), s.begin() + k, 0L)) {
-            ans -= 1L << bit;
+    Dec >> a;
+    vector<pair<char, int>> ans;
+    rep (i, n) {
+        rep (j, n - 2) {
+            if (((a[j] ^ j) & 1) && !((a[j + 2] ^ j) & 1)) {
+                ans.emplace_back('B', j + 1);
+                swap(a[j], a[j + 2]);
+            }
         }
     }
-    co(ans);
+    rep (i, n) {
+        rep (j, n - 1) {
+            if (((a[j] ^ j) & 1) && ((a[j + 1] ^ (j + 1)) & 1)) {
+                ans.emplace_back('A', j + 1);
+                swap(a[j], a[j + 1]);
+            }
+        }
+    }
+    rep (i, n) {
+        rep (j, n - 2) {
+            if (a[j] > a[j + 2]) {
+                ans.emplace_back('B', j + 1);
+                swap(a[j], a[j + 2]);
+            }
+        }
+    }
+    co(ans.size());
+    for (auto [x, y] : ans) co(x, y);
 
     return 0;
 }

@@ -95,34 +95,17 @@ void Aoki(bool is_not_correct = true) {
 }
 #line 3 "a.cpp"
 
-ll f(ll n, ll m) {
-    ll res = 0;
-    repr (bit, 32) {
-        if (res >= n)
-            break;
-        if ((n | m) >> bit & 1)
-            res |= 1 << bit;
-    }
-    return res | m;
-}
-
 int main(void) {
-    int n, k;
-    ll m;
-    cin >> n >> m >> k;
-    vector<ll> a(n);
-    cin >> a;
+    int n;
+    ll s, k;
+    cin >> n >> s >> k;
+    vector<pair<ll, int>> p(n);
+    cin >> p;
 
     ll ans = 0;
-    repr (bit, 31) {
-        vector<ll> s(n);
-        ans += 1L << bit;
-        rep (i, n) s[i] = f(a[i], ans) - a[i];
-        sort(all(s));
-        if (m < accumulate(s.begin(), s.begin() + k, 0L)) {
-            ans -= 1L << bit;
-        }
-    }
+    rep (i, n) ans += p[i].first * p[i].second;
+    if (ans < s)
+        ans += k;
     co(ans);
 
     return 0;

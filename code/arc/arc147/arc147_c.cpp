@@ -95,33 +95,42 @@ void Aoki(bool is_not_correct = true) {
 }
 #line 3 "a.cpp"
 
-ll f(ll n, ll m) {
-    ll res = 0;
-    repr (bit, 32) {
-        if (res >= n)
-            break;
-        if ((n | m) >> bit & 1)
-            res |= 1 << bit;
-    }
-    return res | m;
-}
-
 int main(void) {
-    int n, k;
-    ll m;
-    cin >> n >> m >> k;
-    vector<ll> a(n);
+    int n;
+    cin >> n;
+    vector<pair<int, int>> a(n);
     cin >> a;
+    priority_queue<int> p;
+    priority_queue<int, vector<int>, greater<>> q;
+    rep (i, n) {
+        p.emplace(a[i].first);
+        q.emplace(a[i].second);
+    }
 
-    ll ans = 0;
-    repr (bit, 31) {
-        vector<ll> s(n);
-        ans += 1L << bit;
-        rep (i, n) s[i] = f(a[i], ans) - a[i];
-        sort(all(s));
-        if (m < accumulate(s.begin(), s.begin() + k, 0L)) {
-            ans -= 1L << bit;
+    int x = p.top();
+    p.pop();
+    if (x <= q.top()) {
+    } else {
+        x = q.top();
+        q.pop();
+        while (!p.empty()) {
+            if (x >= p.top())
+                break;
+            x = p.top();
+            p.pop();
+            if (x <= q.top())
+                break;
+            x = q.top();
+            q.pop();
         }
+    }
+    vector<ll> v(n);
+    rep (i, n) v[i] = clamp(x, a[i].first, a[i].second);
+    sort(all(v));
+    ll ans = 0;
+    rep (i, n) {
+        ans -= v[n - 1 - i] * i;
+        ans += v[i] * i;
     }
     co(ans);
 

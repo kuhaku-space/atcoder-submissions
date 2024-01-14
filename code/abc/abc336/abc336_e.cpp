@@ -1,0 +1,174 @@
+#line 1 "a.cpp"
+#define PROBLEM ""
+#line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
+#pragma GCC target("sse4.2,avx2,bmi2")
+#pragma GCC optimize("O3")
+#pragma GCC optimize("unroll-loops")
+#include <bits/stdc++.h>
+template <class T, class U>
+constexpr bool chmax(T &a, const U &b) {
+    return a < (T)b ? a = (T)b, true : false;
+}
+template <class T, class U>
+constexpr bool chmin(T &a, const U &b) {
+    return (T)b < a ? a = (T)b, true : false;
+}
+constexpr std::int64_t INF = 1000000000000000003;
+constexpr int Inf = 1000000003;
+constexpr double EPS = 1e-7;
+constexpr double PI = M_PI;
+#line 2 "/home/kuhaku/home/github/algo/lib/string/converter.hpp"
+
+struct string_converter {
+    char type(const char &c) const {
+        return (std::islower(c) ? 'a' : std::isupper(c) ? 'A' : std::isdigit(c) ? '0' : 0);
+    }
+    int convert(const char &c) {
+        if (!start) start = type(c);
+        return c - start;
+    }
+    int convert(const char &c, const std::string &chars) { return chars.find(c); }
+    template <typename T>
+    auto convert(const T &v) {
+        std::vector<decltype(convert(v[0]))> res;
+        res.reserve(v.size());
+        for (auto &&e : v) res.emplace_back(convert(e));
+        return res;
+    }
+    template <typename T>
+    auto convert(const T &v, const std::string &chars) {
+        std::vector<decltype(convert(v[0], chars))> res;
+        res.reserve(v.size());
+        for (auto &&e : v) res.emplace_back(convert(e, chars));
+        return res;
+    }
+    int operator()(const char &v, char s = 0) {
+        start = s;
+        return convert(v);
+    }
+    int operator()(const char &v, const std::string &chars) { return convert(v, chars); }
+    template <typename T>
+    auto operator()(const T &v, char s = 0) {
+        start = s;
+        return convert(v);
+    }
+    template <typename T>
+    auto operator()(const T &v, const std::string &chars) {
+        return convert(v, chars);
+    }
+
+  private:
+    char start = 0;
+} to_int;
+#line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
+#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
+#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
+#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
+#define rep(i, n) FOR (i, 0, n)
+#define repn(i, n) FOR (i, 1, n + 1)
+#define repr(i, n) FORR (i, n, 0)
+#define repnr(i, n) FORR (i, n + 1, 1)
+#define all(s) (s).begin(), (s).end()
+#line 3 "/home/kuhaku/home/github/algo/lib/template/sonic.hpp"
+struct Sonic {
+    Sonic() {
+        std::ios::sync_with_stdio(false);
+        std::cin.tie(nullptr);
+        std::cout << std::fixed << std::setprecision(20);
+    }
+
+    constexpr void operator()() const {}
+} sonic;
+#line 5 "/home/kuhaku/home/github/algo/lib/template/atcoder.hpp"
+using namespace std;
+using ll = std::int64_t;
+using ld = long double;
+template <class T, class U>
+std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
+    return is >> p.first >> p.second;
+}
+template <class T>
+std::istream &operator>>(std::istream &is, std::vector<T> &v) {
+    for (T &i : v) is >> i;
+    return is;
+}
+template <class T, class U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
+    return os << '(' << p.first << ',' << p.second << ')';
+}
+template <class T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+    for (auto it = v.begin(); it != v.end(); ++it) {
+        os << (it == v.begin() ? "" : " ") << *it;
+    }
+    return os;
+}
+template <class Head, class... Tail>
+void co(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
+    else std::cout << head << ' ', co(std::forward<Tail>(tail)...);
+}
+template <class Head, class... Tail>
+void ce(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
+    else std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
+}
+template <typename T, typename... Args>
+auto make_vector(T x, int arg, Args... args) {
+    if constexpr (sizeof...(args) == 0) return std::vector<T>(arg, x);
+    else return std::vector(arg, make_vector<T>(x, args...));
+}
+void Yes(bool is_correct = true) {
+    std::cout << (is_correct ? "Yes" : "No") << '\n';
+}
+void No(bool is_not_correct = true) {
+    Yes(!is_not_correct);
+}
+void YES(bool is_correct = true) {
+    std::cout << (is_correct ? "YES" : "NO") << '\n';
+}
+void NO(bool is_not_correct = true) {
+    YES(!is_not_correct);
+}
+void Takahashi(bool is_correct = true) {
+    std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n';
+}
+void Aoki(bool is_not_correct = true) {
+    Takahashi(!is_not_correct);
+}
+#line 4 "a.cpp"
+
+int main(void) {
+    ll n;
+    cin >> n;
+    string s = to_string(n);
+    auto v = to_int(s);
+
+    ll ans = 0;
+    repn (m, 126) {
+        vector dp(2, vector(v.size() + 1, vector(127, vector(127, 0l))));
+        dp[1][0][0][0] = 1;
+        rep (i, v.size()) {
+            rep (k, 127) {
+                rep (l, m) {
+                    rep (d, 10) {
+                        if (k + d > 126)
+                            break;
+                        dp[0][i + 1][k + d][(l * 10 + d) % m] += dp[0][i][k][l];
+                        if (v[i] == d) {
+                            dp[1][i + 1][k + d][(l * 10 + d) % m] += dp[1][i][k][l];
+                        } else if (v[i] > d) {
+                            dp[0][i + 1][k + d][(l * 10 + d) % m] += dp[1][i][k][l];
+                        }
+                    }
+                }
+            }
+        }
+
+        ans += dp[0][v.size()][m][0];
+        ans += dp[1][v.size()][m][0];
+    }
+    co(ans);
+
+    return 0;
+}

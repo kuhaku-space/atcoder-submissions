@@ -1,32 +1,60 @@
 #line 1 "a.cpp"
 #define PROBLEM ""
-#line 2 "/home/kuhaku/home/github/algo/lib/segment_tree/segment_tree.hpp"
+#line 1 "/home/kuhaku/home/github/algo/lib/data_structure/wavelet_matrix_monoid.hpp"
 #include <cassert>
+#include <numeric>
+#include <tuple>
 #include <vector>
-#line 2 "/home/kuhaku/home/github/algo/lib/internal/internal_bit.hpp"
+#line 2 "/home/kuhaku/home/github/algo/lib/data_structure/bit_vector.hpp"
 
-namespace internal {
+/**
+ * @brief 完備辞書
+ *
+ * @see https://ei1333.github.io/library/structure/wavelet/succinct-indexable-dictionary.hpp
+ */
+struct bit_vector {
+    bit_vector() = default;
+    bit_vector(unsigned int _length)
+        : length(_length), blocks((_length + 31) >> 5), bit((_length + 31) >> 5),
+          sum((_length + 31) >> 5) {}
 
-// @return same with std::bit::bit_ceil
-unsigned int bit_ceil(unsigned int n) {
-    unsigned int x = 1;
-    while (x < (unsigned int)(n)) x *= 2;
-    return x;
-}
+    void set(unsigned int k) { bit[k >> 5] |= 1U << (k & 31); }
 
-// @param n `1 <= n`
-// @return same with std::bit::countr_zero
-int countr_zero(unsigned int n) { return __builtin_ctz(n); }
+    void build() {
+        sum[0] = 0U;
+        for (unsigned int i = 1; i < blocks; ++i) {
+            sum[i] = sum[i - 1] + __builtin_popcount(bit[i - 1]);
+        }
+    }
 
-// @param n `1 <= n`
-// @return same with std::bit::countr_zero
-constexpr int countr_zero_constexpr(unsigned int n) {
-    int x = 0;
-    while (!(n & (1 << x))) x++;
-    return x;
-}
+    bool operator[](unsigned int k) const { return bit[k >> 5] >> (k & 31) & 1; }
 
-}  // namespace internal
+    unsigned int rank(unsigned int k) const {
+        return sum[k >> 5] + __builtin_popcount(bit[k >> 5] & ((1U << (k & 31)) - 1));
+    }
+    unsigned int rank(bool val, unsigned int k) const { return val ? rank(k) : k - rank(k); }
+
+    unsigned int select(unsigned int k) const {
+        unsigned int sl = 0, sr = blocks + 1;
+        while (sr - sl > 1) {
+            unsigned int m = (sl + sr) >> 1;
+            if (sum[m] < k) sl = m;
+            else sr = m;
+        }
+        k -= sum[sl];
+        unsigned int bl = 0, br = 32;
+        while (br - bl > 1) {
+            unsigned int m = (bl + br) >> 1;
+            if (__builtin_popcount(bit[sl] & ((1U << m) - 1)) < k) bl = m;
+            else br = m;
+        }
+        return (sl << 5) + bl;
+    }
+
+  private:
+    unsigned int length, blocks;
+    std::vector<unsigned int> bit, sum;
+};
 #line 2 "/home/kuhaku/home/github/algo/lib/segment_tree/monoid.hpp"
 #include <algorithm>
 #include <limits>
@@ -132,119 +160,74 @@ struct Rev {
     static constexpr T id = M::id;
     static constexpr T op(T lhs, T rhs) { return M::op(rhs, lhs); }
 };
-#line 6 "/home/kuhaku/home/github/algo/lib/segment_tree/segment_tree.hpp"
+#line 7 "/home/kuhaku/home/github/algo/lib/data_structure/wavelet_matrix_monoid.hpp"
 
-/**
- * @brief セグメント木
- * @see https://noshi91.hatenablog.com/entry/2020/04/22/212649
- *
- * @tparam M モノイド
- */
-template <class M>
-struct segment_tree {
+template <class T, class M, int L = 30>
+struct wavelet_matrix_monoid {
   private:
-    using T = typename M::value_type;
+    using U = typename M::value_type;
 
   public:
-    segment_tree() : segment_tree(0) {}
-    explicit segment_tree(int n, T e = M::id) : segment_tree(std::vector<T>(n, e)) {}
-    template <class U>
-    explicit segment_tree(const std::vector<U> &v) : _n(v.size()) {
-        _size = internal::bit_ceil(_n);
-        _log = internal::countr_zero(_size);
-        data = std::vector<T>(_size << 1, M::id);
-        for (int i = 0; i < _n; ++i) data[_size + i] = T(v[i]);
-        for (int i = _size - 1; i >= 1; --i) update(i);
-    }
-
-    const T &operator[](int k) const { return data[k + _size]; }
-    T at(int k) const { return operator[](k); }
-    T get(int k) const { return operator[](k); }
-
-    void set(int k, T val) {
-        assert(0 <= k && k < _n);
-        k += _size;
-        data[k] = val;
-        for (int i = 1; i <= _log; ++i) update(k >> i);
-    }
-    void reset(int k) { set(k, M::id); }
-
-    T all_prod() const { return data[1]; }
-    T prod(int a, int b) const {
-        assert(0 <= a && b <= _n);
-        T l = M::id, r = M::id;
-        for (a += _size, b += _size; a < b; a >>= 1, b >>= 1) {
-            if (a & 1) l = M::op(l, data[a++]);
-            if (b & 1) r = M::op(data[--b], r);
+    wavelet_matrix_monoid() = default;
+    wavelet_matrix_monoid(const std::vector<T> &v, const std::vector<U> &u) : length(v.size()) {
+        assert(v.size() == u.size());
+        std::vector<int> l(length), r(length), ord(length);
+        std::iota(ord.begin(), ord.end(), 0);
+        for (int level = L - 1; level >= 0; level--) {
+            matrix[level] = bit_vector(length + 1);
+            int left = 0, right = 0;
+            for (int i = 0; i < length; i++) {
+                if ((v[ord[i]] >> level) & 1) {
+                    matrix[level].set(i);
+                    r[right++] = ord[i];
+                } else {
+                    l[left++] = ord[i];
+                }
+            }
+            mid[level] = left;
+            matrix[level].build();
+            ord.swap(l);
+            for (int i = 0; i < right; i++) ord[left + i] = r[i];
+            cs[level].resize(length + 1);
+            cs[level][0] = M::id;
+            for (int i = 0; i < length; i++) cs[level][i + 1] = M::op(cs[level][i], u[ord[i]]);
         }
-        return M::op(l, r);
     }
 
-    template <class F>
-    int max_right(F f) const {
-        return max_right(0, f);
+    U range_sum(int r, T x) const { return range_sum(0, r, x); }
+
+    U range_sum(int l, int r, T x) const {
+        for (int level = L - 1; level >= 0; level--)
+            std::tie(l, r) = succ((x >> level) & 1, l, r, level);
+        return cs[0][matrix[0].rank(false, r)] - cs[0][matrix[0].rank(false, l)];
     }
 
-    template <class F>
-    int max_right(int l, F f) const {
-        assert(0 <= l && l <= _n);
-        assert(f(M::id));
-        if (l == _n) return _n;
-        l += _size;
-        T sm = M::id;
-        do {
-            while (l % 2 == 0) l >>= 1;
-            if (!f(M::op(sm, data[l]))) {
-                while (l < _size) {
-                    l = (2 * l);
-                    if (f(M::op(sm, data[l]))) {
-                        sm = M::op(sm, data[l]);
-                        l++;
-                    }
-                }
-                return l - _size;
-            }
-            sm = M::op(sm, data[l]);
-            l++;
-        } while ((l & -l) != l);
-        return _n;
+    U rect_sum(int l, int r, T upper) const {
+        U res = 0;
+        for (int level = L - 1; level >= 0; level--) {
+            bool f = (upper >> level) & 1;
+            if (f)
+                res += cs[level][matrix[level].rank(false, r)] -
+                       cs[level][matrix[level].rank(false, l)];
+            std::tie(l, r) = succ(f, l, r, level);
+        }
+        return res;
     }
 
-    template <class F>
-    int min_left(F f) const {
-        return min_left(_n, f);
-    }
-
-    template <class F>
-    int min_left(int r, F f) const {
-        assert(0 <= r && r <= _n);
-        assert(f(M::id));
-        if (r == 0) return 0;
-        r += _size;
-        T sm = M::id;
-        do {
-            r--;
-            while (r > 1 && (r % 2)) r >>= 1;
-            if (!f(M::op(data[r], sm))) {
-                while (r < _size) {
-                    r = (2 * r + 1);
-                    if (f(M::op(data[r], sm))) {
-                        sm = M::op(data[r], sm);
-                        r--;
-                    }
-                }
-                return r + 1 - _size;
-            }
-            sm = M::op(data[r], sm);
-        } while ((r & -r) != r);
-        return 0;
+    U rect_sum(int l, int r, T lower, T upper) const {
+        return rect_sum(l, r, upper) - rect_sum(l, r, lower);
     }
 
   private:
-    int _n, _size, _log;
-    std::vector<T> data;
+    int length;
+    bit_vector matrix[L];
+    int mid[L];
+    std::vector<U> cs[L];
 
-    void update(int k) { data[k] = M::op(data[2 * k], data[2 * k + 1]); }
+    std::pair<int, int> succ(bool f, int l, int r, int level) const {
+        return {matrix[level].rank(f, l) + mid[level] * f,
+                matrix[level].rank(f, r) + mid[level] * f};
+    }
 };
 #line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
 #pragma GCC target("sse4.2,avx2,bmi2")
@@ -263,98 +246,6 @@ constexpr std::int64_t INF = 1000000000000000003;
 constexpr int Inf = 1000000003;
 constexpr double EPS = 1e-7;
 constexpr double PI = M_PI;
-#line 3 "/home/kuhaku/home/github/algo/lib/binary_tree/range_tree.hpp"
-
-/**
- * @brief 領域木
- *
- * @tparam M
- * @tparam T
- *
- * @see https://hitonanode.github.io/cplib-cpp/segmenttree/rangetree.hpp.html
- */
-template <class M, class T = int>
-struct range_tree {
-  private:
-    using Pt = std::pair<T, T>;
-    using value_type = typename M::value_type;
-
-  public:
-    range_tree() = default;
-
-    void add(T x, T y) noexcept { _pts.emplace_back(x, y); }
-
-    void build() {
-        std::sort(_pts.begin(), _pts.end());
-        _pts.erase(std::unique(_pts.begin(), _pts.end()), _pts.end());
-        _size = _pts.size();
-
-        _range2yxs.resize(_size * 2);
-        for (int i = 0; i < _size; i++) _range2yxs[_size + i] = {{_pts[i].second, _pts[i].first}};
-        for (int i = _size - 1; i > 0; i--) {
-            auto &lch = _range2yxs[i * 2];
-            auto &rch = _range2yxs[i * 2 + 1];
-            std::merge(lch.begin(), lch.end(), rch.begin(), rch.end(),
-                       std::back_inserter(_range2yxs[i]));
-            _range2yxs[i].erase(std::unique(_range2yxs[i].begin(), _range2yxs[i].end()),
-                                _range2yxs[i].end());
-        }
-        for (const auto &v : _range2yxs) segtrees.emplace_back(v.size());
-    }
-
-    void set(T x, T y, value_type val) {
-        int i = std::distance(_pts.begin(), std::lower_bound(_pts.begin(), _pts.end(), Pt{x, y}));
-        assert(i < _size && _pts[i] == std::make_pair(x, y));
-        for (i += _size; i; i >>= 1) set(i, {x, y}, val);
-    }
-
-    value_type prod(T xl, T yl, T xr, T yr) const {
-        auto comp = [](const Pt &l, const Pt &r) {
-            return l.first < r.first;
-        };
-        int l = _size + std::distance(_pts.begin(),
-                                      std::lower_bound(_pts.begin(), _pts.end(), Pt{xl, yr}, comp));
-        int r = _size + std::distance(_pts.begin(),
-                                      std::lower_bound(_pts.begin(), _pts.end(), Pt{xr, yr}, comp));
-        value_type res = M::id;
-        while (l < r) {
-            if (l & 1) res = M::op(res, prod(l++, yl, yr));
-            if (r & 1) res = M::op(res, prod(--r, yl, yr));
-            l >>= 1, r >>= 1;
-        }
-        return res;
-    }
-    value_type get(T x, T y) const {
-        int i = std::distance(_pts.begin(), std::lower_bound(_pts.begin(), _pts.end(), Pt{x, y}));
-        return i < _size && _pts[i] == std::make_pair(x, y) ? segtrees[_size + i].get(0) : M::id;
-    }
-
-  private:
-    int _size;
-    std::vector<Pt> _pts;
-    std::vector<std::vector<Pt>> _range2yxs;
-    std::vector<segment_tree<M>> segtrees;
-
-    void set(int v, Pt p, value_type val) {
-        auto i = std::distance(
-            _range2yxs[v].begin(),
-            std::lower_bound(_range2yxs[v].begin(), _range2yxs[v].end(), Pt{p.second, p.first}));
-        segtrees[v].set(i, val);
-    }
-
-    value_type prod(int v, T yl, T yr) const {
-        auto comp = [&](const Pt &l, const Pt &r) {
-            return l.first < r.first;
-        };
-        auto il = std::distance(
-            _range2yxs[v].begin(),
-            std::lower_bound(_range2yxs[v].begin(), _range2yxs[v].end(), Pt{yl, yl}, comp));
-        auto ir = std::distance(
-            _range2yxs[v].begin(),
-            std::lower_bound(_range2yxs[v].begin(), _range2yxs[v].end(), Pt{yr, yr}, comp));
-        return segtrees[v].prod(il, ir);
-    }
-};
 #line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
 #define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
 #define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
@@ -439,11 +330,7 @@ int main(void) {
     vector<ll> a(n);
     cin >> a;
 
-    range_tree<Add<ll>> st;
-    rep (i, n) st.add(i, a[i]);
-    st.build();
-    rep (i, n) st.set(i, a[i], a[i]);
-
+    wavelet_matrix_monoid<ll, Add<ll>> st(a, a);
     int q;
     cin >> q;
     ll ans = 0;
@@ -453,7 +340,7 @@ int main(void) {
         l ^= ans;
         r ^= ans;
         x ^= ans;
-        ans = st.prod(l - 1, 0, r, x + 1);
+        ans = st.rect_sum(l - 1, r, 0, x + 1);
         co(ans);
     }
 

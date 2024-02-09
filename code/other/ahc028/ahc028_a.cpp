@@ -1,11 +1,6 @@
-#ifndef LOCAL
-#pragma GCC optimize("O3")
-#pragma GCC optimize("unroll-loops")
-#pragma GCC optimize("inline")
-#endif
-
 #include <algorithm>
 #include <array>
+#include <bitset>
 #include <cassert>
 #include <cmath>
 #include <cstdint>
@@ -19,6 +14,8 @@
 using namespace std;
 
 namespace lib {
+
+constexpr int inf = 1000000000;
 
 template <class T, class U>
 constexpr bool chmax(T &a, const U &b) {
@@ -105,73 +102,151 @@ using namespace lib;
 constexpr int N = 15;
 constexpr int M = 200;
 
-struct Solver {
+Trace<int> trace;
+
+struct Field {
     const Position start;
     const array<string, N> &keyboard;
     const array<string, M> &queries;
+    array<vector<Position>, 26> key_list;
 
-    Solver(const Position start, const array<string, N> &keyboard, const array<string, M> &queries)
-        : start(start), keyboard(keyboard), queries(queries) {}
-
-    vector<string> create_merged_queries() const {
-        vector<string> merged_queries;
-        for (const string &str : queries) merged_queries.emplace_back(str);
-        for (int k = 4; k >= 1; --k) {
-            for (int loop = 0; loop < 10; ++loop) {
-                shuffle(merged_queries.begin(), merged_queries.end(), xorshift);
-                unordered_map<string, vector<int>> mp;
-                int n = merged_queries.size();
-                for (int i = 0; i < n; ++i) {
-                    if (merged_queries[i].empty()) continue;
-                    string st = merged_queries[i].substr(0, k);
-                    if (mp.count(st) && !mp[st].empty()) {
-                        int idx = mp[st].back();
-                        merged_queries[idx] += merged_queries[i].substr(k);
-                        merged_queries[i] = string();
-                        mp[st].pop_back();
-                        string en = merged_queries[idx].substr(merged_queries[idx].size() - k);
-                        mp[en].emplace_back(idx);
-                    } else {
-                        string en = merged_queries[i].substr(merged_queries[i].size() - k);
-                        mp[en].emplace_back(i);
-                    }
-                }
-                auto it = merged_queries.begin();
-                while (it != merged_queries.end()) {
-                    if (it->empty()) it = merged_queries.erase(it);
-                    else ++it;
-                }
-            }
-        }
-        return merged_queries;
+    Field(const Position start, const array<string, N> &keyboard, const array<string, M> &queries)
+        : start(start), keyboard(keyboard), queries(queries) {
+        build();
     }
 
-    string create_lucky_string() const {
-        auto merged_queries = create_merged_queries();
-        string lucky_string;
-        for (const string &str : merged_queries) lucky_string += str;
-        return lucky_string;
-    }
-
-    vector<Position> create_typing_key(const string &lucky_string, int &score) const {
-        array<vector<Position>, 26> key_list;
+    void build() {
         for (int x = 0; x < N; ++x) {
             for (int y = 0; y < N; ++y) {
                 int c = keyboard[x][y] - 'A';
                 key_list[c].emplace_back(x, y);
             }
         }
+    }
+};
 
-        Trace<Position> trace;
-        vector<pair<int, int>> cur(1, {0, trace.push(start, -1)});
-        for (char ch : lucky_string) {
+struct Operation {
+    int id;
+};
+
+struct State {
+    using score_type = int;
+    int trace_id;
+    score_type score;
+    string end;
+    bitset<M> used;
+    vector<pair<score_type, Position>> end_score;
+
+    State() = default;
+    State(Position start) : trace_id(-1), score(), end(), used(), end_score(1, {0, start}) {}
+
+    score_type predict_score(const Operation &op, const Field &field) {
+        int id = op.id;
+        string target = field.queries[id];
+        int k = 0;
+        for (int l = 5; l >= 1; --l) {
+            if (end.ends_with(target.substr(0, l))) {
+                k = l;
+                break;
+            }
+        }
+        target = target.substr(k);
+        end += target;
+        if (end.size() > 5) end = end.substr(end.size() - 5, 5);
+        vector<pair<score_type, Position>> cur = end_score;
+        for (char ch : target) {
             int c = ch - 'A';
             int m1 = cur.size();
-            int m2 = key_list[c].size();
+            int m2 = field.key_list[c].size();
+            vector<pair<score_type, Position>> nxt(m2);
+            for (int j = 0; j < m2; ++j) {
+                Position nxt_pos = field.key_list[c][j];
+                int min_d = inf;
+                for (int i = 0; i < m1; ++i) {
+                    Position cur_pos = cur[i].second;
+                    int d = cur[i].first + cur_pos.dist(nxt_pos);
+                    chmin(min_d, d);
+                }
+                nxt[j] = {min_d, nxt_pos};
+            }
+            cur = nxt;
+        }
+        score_type res = inf;
+        for (auto [d, pos] : cur) chmin(res, d);
+        return res;
+    }
+
+    void apply(const Operation &op, const Field &field) {
+        int id = op.id;
+        string target = field.queries[id];
+        trace_id = trace.push(id, trace_id);
+        used[id] = true;
+        int k = 0;
+        for (int l = 5; l >= 1; --l) {
+            if (end.ends_with(target.substr(0, l))) {
+                k = l;
+                break;
+            }
+        }
+        target = target.substr(k);
+        end += target;
+        if (end.size() > 5) end = end.substr(end.size() - 5, 5);
+        vector<pair<score_type, Position>> cur = end_score;
+        for (char ch : target) {
+            int c = ch - 'A';
+            int m1 = cur.size();
+            int m2 = field.key_list[c].size();
+            vector<pair<score_type, Position>> nxt(m2);
+            for (int j = 0; j < m2; ++j) {
+                Position nxt_pos = field.key_list[c][j];
+                int min_d = inf;
+                for (int i = 0; i < m1; ++i) {
+                    Position cur_pos = cur[i].second;
+                    int d = cur[i].first + cur_pos.dist(nxt_pos);
+                    chmin(min_d, d);
+                }
+                nxt[j] = {min_d, nxt_pos};
+            }
+            cur = nxt;
+        }
+        end_score = cur;
+        score = inf;
+        for (auto [d, pos] : cur) chmin(score, d);
+    }
+};
+
+constexpr int BEAM_SIZE = 100;
+
+struct beam_search {
+    const Field &field;
+
+    string merge_queries(const vector<int> &query_order) {
+        string typing_key;
+        for (int idx : query_order) {
+            string query = field.queries[idx];
+            int k = 0;
+            for (int l = 5; l >= 1; --l) {
+                if (typing_key.ends_with(query.substr(0, l))) {
+                    k = l;
+                    break;
+                }
+            }
+            typing_key += query.substr(k);
+        }
+        return typing_key;
+    }
+
+    vector<Position> create_moving_finger(string typing_key) {
+        Trace<Position> trace;
+        vector<pair<int, int>> cur(1, {0, trace.push(field.start, -1)});
+        for (char ch : typing_key) {
+            int c = ch - 'A';
+            int m1 = cur.size();
+            int m2 = field.key_list[c].size();
             vector<pair<int, int>> nxt(m2);
             for (int j = 0; j < m2; ++j) {
-                Position nxt_pos = key_list[c][j];
-                int min_d = 1000000000, min_idx = -1;
+                Position nxt_pos = field.key_list[c][j];
+                int min_d = inf, min_idx = -1;
                 for (int i = 0; i < m1; ++i) {
                     auto [cur_pos, prev_idx] = trace.get(cur[i].second);
                     int cur_idx = cur[i].second;
@@ -183,42 +258,63 @@ struct Solver {
             cur = nxt;
         }
 
-        int min_d = 1000000000, min_idx = -1;
+        int min_score = inf, min_idx = -1;
         for (int i = 0; i < (int)cur.size(); ++i) {
-            if (chmin(min_d, cur[i].first)) min_idx = cur[i].second;
+            if (chmin(min_score, cur[i].first)) min_idx = cur[i].second;
         }
-        vector<Position> typing_key = trace.chain(min_idx);
-        typing_key.erase(typing_key.begin());
-        score = min_d + lucky_string.size();
-        return typing_key;
+        vector<Position> moving_finger = trace.chain(min_idx);
+        moving_finger.erase(moving_finger.begin());
+        return moving_finger;
     }
 
-    vector<Position> create_typing_key_by_merged_queries(vector<string> merged_queries,
-                                                         int &score) const {
-        vector<Position> typing_key;
-        int min_score = 1000000000;
-        for (int loop = 0; loop < 100; ++loop) {
-            shuffle(merged_queries.begin(), merged_queries.end(), xorshift);
-            string lucky_string;
-            for (const string &str : merged_queries) lucky_string += str;
-            int score;
-            auto v = create_typing_key(lucky_string, score);
-            if (chmin(min_score, score)) typing_key = v;
+    vector<int> create_query_order() {
+        array<State, BEAM_SIZE> cur;
+        cur[0] = State(field.start);
+        int cur_size = 1;
+        for (int turn = 0; turn < M; ++turn) {
+            array<tuple<int, Operation, int>, BEAM_SIZE * 2 + M> nxt_score;
+            int nxt_size = 0;
+            for (int cur_idx = 0; cur_idx < cur_size; ++cur_idx) {
+                for (int id = 0; id < M; ++id) {
+                    if (cur[cur_idx].used[id]) continue;
+                    Operation op(id);
+                    nxt_score[nxt_size++] = {cur[cur_idx].predict_score(op, field), op, cur_idx};
+                }
+                if (nxt_size >= BEAM_SIZE * 2) {
+                    nth_element(nxt_score.begin(), nxt_score.begin() + BEAM_SIZE,
+                                nxt_score.begin() + nxt_size,
+                                [](auto l, auto r) { return get<0>(l) < get<0>(r); });
+                    nxt_size = BEAM_SIZE;
+                }
+            }
+            if (nxt_size > BEAM_SIZE) {
+                nth_element(nxt_score.begin(), nxt_score.begin() + BEAM_SIZE,
+                            nxt_score.begin() + nxt_size,
+                            [](auto l, auto r) { return get<0>(l) < get<0>(r); });
+                nxt_size = BEAM_SIZE;
+            }
+            array<State, BEAM_SIZE> cur_copy = cur;
+            for (int i = 0; i < nxt_size; ++i) {
+                auto [score, op, cur_idx] = nxt_score[i];
+                cur[i] = cur_copy[cur_idx];
+                cur[i].apply(op, field);
+            }
+            cur_size = nxt_size;
         }
-        score = min_score;
-        return typing_key;
+
+        int min_score = inf, ans_idx = -1;
+        for (int i = 0; i < cur_size; ++i) {
+            if (chmin(min_score, cur[i].score)) ans_idx = i;
+        }
+        vector<int> query_order = trace.chain(cur[ans_idx].trace_id);
+        reverse(query_order.begin(), query_order.end());
+        return query_order;
     }
 
     vector<Position> solve() {
-        vector<Position> ans;
-        int min_score = 1000000000;
-        for (int loop = 0; loop < 63; ++loop) {
-            auto merged_queries = create_merged_queries();
-            int score;
-            auto v = create_typing_key_by_merged_queries(merged_queries, score);
-            if (chmin(min_score, score)) ans = v;
-        }
-        return ans;
+        vector<int> query_order = create_query_order();
+        string typing_key = merge_queries(query_order);
+        return create_moving_finger(typing_key);
     }
 };
 
@@ -231,7 +327,8 @@ int main(void) {
     for (string &s : keyboard) cin >> s;
     array<string, M> queries;
     for (string &s : queries) cin >> s;
-    Solver solver(Position(sx, sy), keyboard, queries);
+    Field field(Position(sx, sy), keyboard, queries);
+    beam_search solver(field);
     auto ans = solver.solve();
     for (const Position &pos : ans) cout << pos.x << ' ' << pos.y << endl;
 

@@ -1,6 +1,6 @@
 #line 1 "a.cpp"
 #define PROBLEM ""
-#line 1 "/home/kuhaku/home/github/algo/lib/data_structure/wavelet_matrix_monoid.hpp"
+#line 1 "/home/kuhaku/home/github/algo/lib/data_structure/wavelet_matrix_rectangle_sum.hpp"
 #include <cassert>
 #include <numeric>
 #include <tuple>
@@ -54,6 +54,73 @@ struct bit_vector {
   private:
     unsigned int length, blocks;
     std::vector<unsigned int> bit, sum;
+};
+#line 6 "/home/kuhaku/home/github/algo/lib/data_structure/wavelet_matrix_rectangle_sum.hpp"
+
+template <class T, class U = T, int L = 30>
+struct wavelet_matrix_rectangle_sum {
+    wavelet_matrix_rectangle_sum() = default;
+    template <class Value>
+    wavelet_matrix_rectangle_sum(const std::vector<T> &v, const std::vector<Value> &u)
+        : length(v.size()) {
+        assert(v.size() == u.size());
+        std::vector<int> l(length), r(length), ord(length);
+        std::iota(ord.begin(), ord.end(), 0);
+        for (int level = L - 1; level >= 0; level--) {
+            matrix[level] = bit_vector(length + 1);
+            int left = 0, right = 0;
+            for (int i = 0; i < length; i++) {
+                if ((v[ord[i]] >> level) & 1) {
+                    matrix[level].set(i);
+                    r[right++] = ord[i];
+                } else {
+                    l[left++] = ord[i];
+                }
+            }
+            mid[level] = left;
+            matrix[level].build();
+            ord.swap(l);
+            for (int i = 0; i < right; i++) ord[left + i] = r[i];
+            cs[level].resize(length + 1);
+            cs[level][0] = U(0);
+            for (int i = 0; i < length; i++) cs[level][i + 1] = cs[level][i] + u[ord[i]];
+        }
+    }
+
+    U range_sum(int r, T x) const { return range_sum(0, r, x); }
+
+    U range_sum(int l, int r, T x) const {
+        for (int level = L - 1; level >= 0; level--)
+            std::tie(l, r) = succ((x >> level) & 1, l, r, level);
+        return cs[0][matrix[0].rank(false, r)] - cs[0][matrix[0].rank(false, l)];
+    }
+
+    U rect_sum(int l, int r, T upper) const {
+        U res = 0;
+        for (int level = L - 1; level >= 0; level--) {
+            bool f = (upper >> level) & 1;
+            if (f)
+                res += cs[level][matrix[level].rank(false, r)] -
+                       cs[level][matrix[level].rank(false, l)];
+            std::tie(l, r) = succ(f, l, r, level);
+        }
+        return res;
+    }
+
+    U rect_sum(int l, int r, T lower, T upper) const {
+        return rect_sum(l, r, upper) - rect_sum(l, r, lower);
+    }
+
+  private:
+    int length;
+    bit_vector matrix[L];
+    int mid[L];
+    std::vector<U> cs[L];
+
+    std::pair<int, int> succ(bool f, int l, int r, int level) const {
+        return {matrix[level].rank(f, l) + mid[level] * f,
+                matrix[level].rank(f, r) + mid[level] * f};
+    }
 };
 #line 2 "/home/kuhaku/home/github/algo/lib/segment_tree/monoid.hpp"
 #include <algorithm>
@@ -160,75 +227,6 @@ struct Rev {
     static constexpr T id = M::id;
     static constexpr T op(T lhs, T rhs) { return M::op(rhs, lhs); }
 };
-#line 7 "/home/kuhaku/home/github/algo/lib/data_structure/wavelet_matrix_monoid.hpp"
-
-template <class T, class M, int L = 30>
-struct wavelet_matrix_monoid {
-  private:
-    using U = typename M::value_type;
-
-  public:
-    wavelet_matrix_monoid() = default;
-    wavelet_matrix_monoid(const std::vector<T> &v, const std::vector<U> &u) : length(v.size()) {
-        assert(v.size() == u.size());
-        std::vector<int> l(length), r(length), ord(length);
-        std::iota(ord.begin(), ord.end(), 0);
-        for (int level = L - 1; level >= 0; level--) {
-            matrix[level] = bit_vector(length + 1);
-            int left = 0, right = 0;
-            for (int i = 0; i < length; i++) {
-                if ((v[ord[i]] >> level) & 1) {
-                    matrix[level].set(i);
-                    r[right++] = ord[i];
-                } else {
-                    l[left++] = ord[i];
-                }
-            }
-            mid[level] = left;
-            matrix[level].build();
-            ord.swap(l);
-            for (int i = 0; i < right; i++) ord[left + i] = r[i];
-            cs[level].resize(length + 1);
-            cs[level][0] = M::id;
-            for (int i = 0; i < length; i++) cs[level][i + 1] = M::op(cs[level][i], u[ord[i]]);
-        }
-    }
-
-    U range_sum(int r, T x) const { return range_sum(0, r, x); }
-
-    U range_sum(int l, int r, T x) const {
-        for (int level = L - 1; level >= 0; level--)
-            std::tie(l, r) = succ((x >> level) & 1, l, r, level);
-        return cs[0][matrix[0].rank(false, r)] - cs[0][matrix[0].rank(false, l)];
-    }
-
-    U rect_sum(int l, int r, T upper) const {
-        U res = 0;
-        for (int level = L - 1; level >= 0; level--) {
-            bool f = (upper >> level) & 1;
-            if (f)
-                res += cs[level][matrix[level].rank(false, r)] -
-                       cs[level][matrix[level].rank(false, l)];
-            std::tie(l, r) = succ(f, l, r, level);
-        }
-        return res;
-    }
-
-    U rect_sum(int l, int r, T lower, T upper) const {
-        return rect_sum(l, r, upper) - rect_sum(l, r, lower);
-    }
-
-  private:
-    int length;
-    bit_vector matrix[L];
-    int mid[L];
-    std::vector<U> cs[L];
-
-    std::pair<int, int> succ(bool f, int l, int r, int level) const {
-        return {matrix[level].rank(f, l) + mid[level] * f,
-                matrix[level].rank(f, r) + mid[level] * f};
-    }
-};
 #line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
 #pragma GCC target("sse4.2,avx2,bmi2")
 #pragma GCC optimize("O3")
@@ -322,7 +320,67 @@ void Takahashi(bool is_correct = true) {
 void Aoki(bool is_not_correct = true) {
     Takahashi(!is_not_correct);
 }
-#line 4 "a.cpp"
+#line 5 "a.cpp"
+
+template <class T, class U, int L = 30>
+struct wavelet_matrix_monoid {
+    wavelet_matrix_monoid() = default;
+    wavelet_matrix_monoid(const std::vector<T> &v, const std::vector<U> &u) : length(v.size()) {
+        assert(v.size() == u.size());
+        std::vector<int> l(length), r(length), ord(length);
+        std::iota(ord.begin(), ord.end(), 0);
+        for (int level = L - 1; level >= 0; level--) {
+            matrix[level] = bit_vector(length + 1);
+            int left = 0, right = 0;
+            for (int i = 0; i < length; i++) {
+                if ((v[ord[i]] >> level) & 1) {
+                    matrix[level].set(i);
+                    r[right++] = ord[i];
+                } else {
+                    l[left++] = ord[i];
+                }
+            }
+            mid[level] = left;
+            matrix[level].build();
+            ord.swap(l);
+            for (int i = 0; i < right; i++) {
+                ord[left + i] = r[i];
+            }
+            ds[level].resize(length + 1);
+            ds[level][0] = U(0);
+            for (int i = 0; i < length; i++) {
+                ds[level][i + 1] = ds[level][i] + u[ord[i]];
+            }
+        }
+    }
+
+    U rect_sum(int l, int r, T upper) {
+        U res = 0;
+        for (int level = L - 1; level >= 0; level--) {
+            bool f = (upper >> level) & 1;
+            if (f)
+                res += ds[level][matrix[level].rank(false, r)] -
+                       ds[level][matrix[level].rank(false, l)];
+            std::tie(l, r) = succ(f, l, r, level);
+        }
+        return res;
+    }
+
+    U rect_sum(int l, int r, T lower, T upper) {
+        return rect_sum(l, r, upper) - rect_sum(l, r, lower);
+    }
+
+  private:
+    int length;
+    bit_vector matrix[L];
+    int mid[L];
+    std::vector<U> ds[L];
+
+    std::pair<int, int> succ(bool f, int l, int r, int level) const {
+        return {matrix[level].rank(f, l) + mid[level] * f,
+                matrix[level].rank(f, r) + mid[level] * f};
+    }
+};
 
 int main(void) {
     int n;
@@ -330,7 +388,7 @@ int main(void) {
     vector<ll> a(n);
     cin >> a;
 
-    wavelet_matrix_monoid<ll, Add<ll>> st(a, a);
+    wavelet_matrix_monoid<ll, ll> st(a, a);
     int q;
     cin >> q;
     ll ans = 0;

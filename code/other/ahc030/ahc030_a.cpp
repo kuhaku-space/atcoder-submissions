@@ -516,6 +516,16 @@ struct Solver {
         return candidate;
     }
 
+    vector<vector<Position>> create_candidate_list() {
+        vector<vector<Position>> candidate;
+        for (const Position &shift0 : predictor.shift_candidate[0]) {
+            for (const Position &shift1 : predictor.shift_candidate[1]) {
+                candidate.emplace_back(vector<Position>{shift0, shift1});
+            }
+        }
+        return candidate;
+    }
+
     vector<Position> decide_shifts_by_decision_tree() {
         auto candidate = predictor.create_candidate();
         while (candidate.size() > 1) {
@@ -596,19 +606,6 @@ struct Solver {
         return ans == 1;
     }
 
-    bool solve_half_search() {
-        while (predictor.count_candidate(1000) >= 1000) {
-            Position p = predictor.select_measure_point();
-            predictor.query({p});
-        }
-
-        auto shifts = decide_shifts_by_decision_tree();
-        auto oil_pos = predictor.is_predicted_completely() ? predictor.get_predicted_oil_pos()
-                                                           : predictor.get_measured_oil_pos();
-        int ans = predictor.answer(oil_pos);
-        return ans == 1;
-    }
-
     bool solve_select_search() {
         Position pos = predictor.select_measure_point();
         while (pos != Position(-1, -1) && !predictor.is_predicted_completely()) {
@@ -630,8 +627,79 @@ struct Solver {
         return ans == 1;
     }
 
+    double calc_mean(int v, int k) {
+        return (k - v) * field.EPS + v * (1 - field.EPS);
+    }
+
+    double calc_variance(int k) {
+        return k * field.EPS * (1 - field.EPS);
+    }
+
+    double calc_lower_tail_probability(double u, int v, int k) {
+        if (k == 1) return u >= v;
+        return (1 + std::erf((u - calc_mean(v, k)) / std::sqrt(2 * calc_variance(k))));
+    }
+
+    double calc_probability(int u, int v, int k) {
+        return calc_lower_tail_probability(u + 0.5, v, k) -
+               (u == 0 ? 0 : calc_lower_tail_probability(u - 0.5, v, k));
+    }
+
+    bool solve_bayesian_inference() {
+        auto candidates = create_candidate_list();
+        vector<double> probability(candidates.size());
+        for (int loop = 0; loop < field.N * field.N; ++loop) {
+            vector<Position> positions;
+            for (int i = 0; i < 15; ++i)
+                positions.emplace_back(xorshift() % field.N, xorshift() % field.N);
+            sort(positions.begin(), positions.end());
+            positions.erase(unique(positions.begin(), positions.end()), positions.end());
+
+            int x = predictor.query(positions);
+            for (int i = 0; i < (int)candidates.size(); ++i) {
+                if (probability[i] == numeric_limits<double>::lowest()) continue;
+                int s = 0;
+                for (const Position &pos : positions) {
+                    for (int j = 0; j < field.M; ++j) {
+                        s += predictor.field.oil_fields[j].contains(pos, candidates[i][j]);
+                    }
+                }
+                double p = calc_probability(x, s, positions.size());
+                if (p == 0) probability[i] = numeric_limits<double>::lowest();
+                else probability[i] += log2(p);
+            }
+
+            int max_idx = max_element(probability.begin(), probability.end()) - probability.begin();
+            double sum = 0;
+            for (int i = 0; i < (int)candidates.size(); ++i) {
+                if (max_idx == i) continue;
+                if (probability[i] == numeric_limits<double>::lowest()) continue;
+                sum += pow(2, probability[i] - probability[max_idx]);
+            }
+            if (sum < 0.1) {
+                vector predicted_board(field.N, vector(field.N, 0));
+                for (int id = 0; id < field.M; ++id) {
+                    Position shift = candidates[max_idx][id];
+                    for (const Position &p : field.oil_fields[id].oil_coordinates) {
+                        Position pos = p + shift;
+                        ++predicted_board[pos.x][pos.y];
+                    }
+                }
+                vector<Position> oil_pos;
+                for (int x = 0; x < field.N; ++x) {
+                    for (int y = 0; y < field.N; ++y) {
+                        if (predicted_board[x][y]) oil_pos.emplace_back(x, y);
+                    }
+                }
+                if (predictor.answer(oil_pos)) return true;
+            }
+        }
+        return false;
+    }
+
     void solve() {
         if (field.M == 2) {
+            if (solve_bayesian_inference()) return;
             if (solve_search_tree()) return;
         }
         assert(solve_select_search());

@@ -490,6 +490,22 @@ struct Predictor {
     }
 };
 
+struct State {
+    vector<Position> shifts;
+    int oil_reserves;
+    double log_likelihood;
+    double likelihood;
+
+    State() = default;
+
+    constexpr bool operator<(const State &rhs) const {
+        return log_likelihood < rhs.log_likelihood;
+    }
+    constexpr bool operator>(const State &rhs) const {
+        return rhs < *this;
+    }
+};
+
 struct Solver {
     const Field &field;
     Predictor predictor;
@@ -645,41 +661,111 @@ struct Solver {
                (u == 0 ? 0 : calc_lower_tail_probability(u - 0.5, v, k));
     }
 
+    double mutual_information(const vector<State> &states, int k) {
+        double res = 0;
+        int n = states.size();
+        for (int u = 0; u < k * 2; ++u) {
+            double s = 0;
+            vector<double> ps(n);
+            for (int i = 0; i < n; ++i) {
+                ps[i] = calc_probability(u, states[i].oil_reserves, k);
+                s += ps[i] * states[i].likelihood;
+            }
+            double ls = log2(s);
+            for (int i = 0; i < n; ++i) {
+                if (ps[i] != 0) res += ps[i] * states[i].likelihood * (log2(ps[i]) - ls);
+            }
+            if (u >= k && s < 1e-9) break;
+        }
+        return res;
+    }
+
+    vector<Position> create_measured_positions(vector<State> &states) {
+        double s = 0;
+        double max_log = max_element(states.begin(), states.end())->log_likelihood;
+        for (auto &state : states) {
+            state.oil_reserves = 0;
+            state.likelihood = pow(2, state.log_likelihood - max_log);
+            s += state.likelihood;
+        }
+        for (auto &state : states) state.likelihood /= s;
+
+        vector used(field.N, vector(field.N, 0));
+        double best_mi = 0;
+        int k = 0;
+        for (int _ = 0; _ < 1000; ++_) {
+            int x = xorshift() % field.N;
+            int y = xorshift() % field.N;
+            int delta = used[x][y] ? -1 : 1;
+            k += delta;
+
+            Position target(x, y);
+            for (auto &state : states) {
+                for (int id = 0; id < field.M; ++id) {
+                    state.oil_reserves +=
+                        delta * field.oil_fields[id].contains(target, state.shifts[id]);
+                }
+            }
+
+            if (chmax(best_mi, mutual_information(states, k) * sqrt(k))) {
+                used[x][y] += delta;
+                continue;
+            }
+
+            delta *= -1;
+            for (auto &state : states) {
+                for (int id = 0; id < field.M; ++id) {
+                    state.oil_reserves +=
+                        delta * field.oil_fields[id].contains(target, state.shifts[id]);
+                }
+            }
+        }
+
+        vector<Position> res;
+        for (int x = 0; x < field.N; ++x) {
+            for (int y = 0; y < field.N; ++y) {
+                if (used[x][y]) res.emplace_back(x, y);
+            }
+        }
+        return res;
+    }
+
     bool solve_bayesian_inference() {
         auto candidates = create_candidate_list();
-        vector<double> probability(candidates.size());
+        vector<State> states(candidates.size());
+        for (int i = 0; i < (int)candidates.size(); ++i) {
+            states[i].shifts = candidates[i];
+        }
+        shuffle(states.begin(), states.end(), xorshift);
         for (int loop = 0; loop < field.N * field.N; ++loop) {
-            vector<Position> positions;
-            for (int i = 0; i < 15; ++i)
-                positions.emplace_back(xorshift() % field.N, xorshift() % field.N);
-            sort(positions.begin(), positions.end());
-            positions.erase(unique(positions.begin(), positions.end()), positions.end());
+            vector<State> extracted_states(states.begin(), states.begin() + 20);
+            vector<Position> positions = create_measured_positions(extracted_states);
 
             int x = predictor.query(positions);
-            for (int i = 0; i < (int)candidates.size(); ++i) {
-                if (probability[i] == numeric_limits<double>::lowest()) continue;
+            for (int i = 0; i < (int)states.size(); ++i) {
+                if (states[i].log_likelihood == numeric_limits<double>::lowest()) continue;
                 int s = 0;
                 for (const Position &pos : positions) {
                     for (int j = 0; j < field.M; ++j) {
-                        s += predictor.field.oil_fields[j].contains(pos, candidates[i][j]);
+                        s += predictor.field.oil_fields[j].contains(pos, states[i].shifts[j]);
                     }
                 }
                 double p = calc_probability(x, s, positions.size());
-                if (p == 0) probability[i] = numeric_limits<double>::lowest();
-                else probability[i] += log2(p);
+                if (p == 0) states[i].log_likelihood = numeric_limits<double>::lowest();
+                else states[i].log_likelihood += log2(p);
             }
 
-            int max_idx = max_element(probability.begin(), probability.end()) - probability.begin();
+            int max_idx = max_element(states.begin(), states.end()) - states.begin();
             double sum = 0;
-            for (int i = 0; i < (int)candidates.size(); ++i) {
+            for (int i = 0; i < (int)states.size(); ++i) {
                 if (max_idx == i) continue;
-                if (probability[i] == numeric_limits<double>::lowest()) continue;
-                sum += pow(2, probability[i] - probability[max_idx]);
+                if (states[i].log_likelihood == numeric_limits<double>::lowest()) continue;
+                sum += pow(2, states[i].log_likelihood - states[max_idx].log_likelihood);
             }
             if (sum < 0.1) {
                 vector predicted_board(field.N, vector(field.N, 0));
                 for (int id = 0; id < field.M; ++id) {
-                    Position shift = candidates[max_idx][id];
+                    Position shift = states[max_idx].shifts[id];
                     for (const Position &p : field.oil_fields[id].oil_coordinates) {
                         Position pos = p + shift;
                         ++predicted_board[pos.x][pos.y];
@@ -693,6 +779,8 @@ struct Solver {
                 }
                 if (predictor.answer(oil_pos)) return true;
             }
+
+            sort(states.begin(), states.end(), greater<>());
         }
         return false;
     }

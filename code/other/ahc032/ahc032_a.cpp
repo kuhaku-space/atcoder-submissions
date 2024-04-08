@@ -337,7 +337,7 @@ struct beam_search {
                     for (int i = 0; i < que_idx; ++i) {
                         auto &&[eval, prev_idx, op] = eval_que[i];
                         int hash = (op.shift.x * (N - 2) + op.shift.y) * M + op.m;
-                        if (count[hash] < 3) {
+                        if (count[hash] < 8) {
                             if (i != idx) swap(eval_que[idx], eval_que[i]);
                             ++count[hash];
                             ++idx;
@@ -355,7 +355,7 @@ struct beam_search {
                 for (int i = 0; i < que_idx; ++i) {
                     auto &&[eval, prev_idx, op] = eval_que[i];
                     int hash = (op.shift.x * (N - 2) + op.shift.y) * M + op.m;
-                    if (count[hash] < 3) {
+                    if (count[hash] < 8) {
                         if (i != idx) swap(eval_que[idx], eval_que[i]);
                         ++count[hash];
                         ++idx;
@@ -400,7 +400,7 @@ int main(void) {
         }
     }
 
-    beam_search<4900> solver;
+    beam_search<(N - 2) * (N - 2) * M * 8> solver;
     vector<Operation> answer = solver.solve(board);
 
     for (Operation op : answer) {
@@ -443,7 +443,7 @@ int main(void) {
         }
     };
 
-    dfs(dfs, 0, std::min(7, K - (int)answer.size()), tmp_board);
+    dfs(dfs, 0, std::min(8, K - (int)answer.size()), tmp_board);
     for (auto op : ans) answer.emplace_back(op);
 
     cout << answer.size() << endl;

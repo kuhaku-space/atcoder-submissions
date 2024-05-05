@@ -95,7 +95,7 @@ void Aoki(bool is_not_correct = true) {
 }
 #line 3 "a.cpp"
 
-template <class T, class F, class Comp = std::less<T>>
+template <class T, class Comp = std::less<T>, class F>
 std::vector<int> monotone_minima(int h, int w, F f) {
     Comp comp;
     std::vector<int> dp(h);
@@ -111,10 +111,8 @@ std::vector<int> monotone_minima(int h, int w, F f) {
         int idx = left;
         for (int i = left + 1; i <= right; i++) {
             T val = f(line, i);
-            if (idx == -1 || comp(val, min_val)) {
-                min_val = val;
-                idx = i;
-            }
+            if (idx == -1 || comp(val, min_val))
+                min_val = val, idx = i;
         }
         dp[line] = idx;
         self(self, top, line - 1, left, idx);
@@ -124,18 +122,84 @@ std::vector<int> monotone_minima(int h, int w, F f) {
     return dp;
 }
 
+template <class T, class Comp = std::less<T>, class F>
+std::vector<T> monotone_minima_value(int h, int w, F f) {
+    Comp comp;
+    std::vector<T> dp(h);
+    auto dfs = [&](auto self, int top, int bottom, int left, int right) -> void {
+        if (top > bottom)
+            return;
+        if (left == right) {
+            for (int i = top; i <= bottom; ++i) dp[i] = f(i, left);
+            return;
+        }
+        int line = (top + bottom) / 2;
+        T min_val = f(line, left);
+        int idx = left;
+        for (int i = left + 1; i <= right; i++) {
+            T val = f(line, i);
+            if (idx == -1 || comp(val, min_val))
+                min_val = val, idx = i;
+        }
+        dp[line] = min_val;
+        self(self, top, line - 1, left, idx);
+        self(self, line + 1, bottom, idx, right);
+    };
+    dfs(dfs, 0, h - 1, 0, w - 1);
+    return dp;
+}
+
+std::vector<ll> min_plus_convolution(const vector<ll> &a, const vector<ll> &b) {
+    int n = a.size(), m = b.size();
+    auto f = [&](int i, int j) {
+        if (i < j or i - j >= m)
+            return std::numeric_limits<ll>::max();
+        return a[j] + b[i - j];
+    };
+    return monotone_minima_value<ll>(n + m - 1, n, f);
+}
+
+std::vector<ll> max_plus_convolution(const vector<ll> &a, const vector<ll> &b) {
+    int n = a.size(), m = b.size();
+    auto f = [&](int i, int j) {
+        if (i < j or i - j >= m)
+            return std::numeric_limits<ll>::min();
+        return a[j] + b[i - j];
+    };
+    return monotone_minima_value<ll, greater<>>(n + m - 1, n, f);
+}
+
+vector<ll> solve(const vector<pair<ll, ll>> &a, int l, int r) {
+    if (r - l == 0) {
+        assert(false);
+    }
+    if (r - l == 1) {
+        return {-INF, a[l].first - a[l].second};
+    }
+    int m = (l + r) / 2;
+
+    auto vl = solve(a, l, m);
+    auto vr = solve(a, m, r);
+    int len = m - l;
+    vector<ll> cs(len + 1);
+    for (int i = 0; i < len; ++i) cs[i + 1] = a[l + i].first;
+    std::sort(cs.begin() + 1, cs.end(), greater<>());
+    for (int i = 0; i < len; ++i) cs[i + 1] += cs[i];
+    auto conv = max_plus_convolution(vr, cs);
+    for (int i = 0; i < (int)vl.size(); ++i) chmax(conv[i], vl[i]);
+    return conv;
+}
+
 int main(void) {
     int n;
     cin >> n;
-    vector<ll> a(n);
+    vector<pair<ll, ll>> a(n);
     cin >> a;
-
-    auto f = [&a](ll i, ll j) {
-        return a[j] + (i - j) * (i - j);
-    };
-
-    auto ans = monotone_minima<ll>(n, n, f);
-    rep (i, n) co(f(i, ans[i]));
+    std::sort(all(a), [](pair<ll, ll> l, pair<ll, ll> r) {
+        return l.second < r.second;
+    });
+    auto ans = solve(a, 0, n);
+    repn (i, n) co(ans[i]);
 
     return 0;
 }

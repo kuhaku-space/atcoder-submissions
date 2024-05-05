@@ -1,5 +1,80 @@
 #line 1 "a.cpp"
 #define PROBLEM ""
+#line 1 "/home/kuhaku/home/github/algo/lib/math/floor_sum.hpp"
+#include <cassert>
+#include <cstdint>
+#include <utility>
+
+namespace internal {
+
+namespace floor_sum {
+
+// @param m `1 <= m`
+// @return x mod m
+constexpr std::int64_t safe_mod(std::int64_t x, std::int64_t m) {
+    x %= m;
+    if (x < 0) x += m;
+    return x;
+}
+
+// @param n `n < 2^32`
+// @param m `1 <= m < 2^32`
+// @return sum_{i=0}^{n-1} floor((ai + b) / m) (mod 2^64)
+std::uint64_t floor_sum_unsigned(std::uint64_t n, std::uint64_t m, std::uint64_t a,
+                                 std::uint64_t b) {
+    std::uint64_t ans = 0;
+    while (true) {
+        if (a >= m) {
+            ans += n * (n - 1) / 2 * (a / m);
+            a %= m;
+        }
+        if (b >= m) {
+            ans += n * (b / m);
+            b %= m;
+        }
+
+        std::uint64_t y_max = a * n + b;
+        if (y_max < m) break;
+        // y_max < m * (n + 1)
+        // floor(y_max / m) <= n
+        n = (std::uint64_t)(y_max / m);
+        b = (std::uint64_t)(y_max % m);
+        std::swap(m, a);
+    }
+    return ans;
+}
+
+}  // namespace floor_sum
+
+}  // namespace internal
+
+/**
+ * @brief floor sum
+ *
+ * @param n
+ * @param m
+ * @param a
+ * @param b
+ * @retval std::int64_t sum[0 <= i < n]floor((a * i + b) / m)
+ *
+ * @see https://atcoder.github.io/ac-library/production/document_ja/math.html
+ */
+std::int64_t floor_sum(std::int64_t n, std::int64_t m, std::int64_t a, std::int64_t b) {
+    assert(0 <= n && n < (1LL << 32));
+    assert(1 <= m && m < (1LL << 32));
+    std::uint64_t ans = 0;
+    if (a < 0) {
+        std::uint64_t a2 = internal::floor_sum::safe_mod(a, m);
+        ans -= 1ULL * n * (n - 1) / 2 * ((a2 - a) / m);
+        a = a2;
+    }
+    if (b < 0) {
+        std::uint64_t b2 = internal::floor_sum::safe_mod(b, m);
+        ans -= 1ULL * n * ((b2 - b) / m);
+        b = b2;
+    }
+    return ans + internal::floor_sum::floor_sum_unsigned(n, m, a, b);
+}
 #line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
 #pragma GCC target("sse4.2,avx2,bmi2")
 #pragma GCC optimize("O3")
@@ -93,49 +168,21 @@ void Takahashi(bool is_correct = true) {
 void Aoki(bool is_not_correct = true) {
     Takahashi(!is_not_correct);
 }
-#line 3 "a.cpp"
-
-template <class T, class F, class Comp = std::less<T>>
-std::vector<int> monotone_minima(int h, int w, F f) {
-    Comp comp;
-    std::vector<int> dp(h);
-    auto dfs = [&](auto self, int top, int bottom, int left, int right) -> void {
-        if (top > bottom)
-            return;
-        if (left == right) {
-            for (int i = top; i <= bottom; ++i) dp[i] = left;
-            return;
-        }
-        int line = (top + bottom) / 2;
-        T min_val = f(line, left);
-        int idx = left;
-        for (int i = left + 1; i <= right; i++) {
-            T val = f(line, i);
-            if (idx == -1 || comp(val, min_val)) {
-                min_val = val;
-                idx = i;
-            }
-        }
-        dp[line] = idx;
-        self(self, top, line - 1, left, idx);
-        self(self, line + 1, bottom, idx, right);
-    };
-    dfs(dfs, 0, h - 1, 0, w - 1);
-    return dp;
-}
+#line 4 "a.cpp"
 
 int main(void) {
-    int n;
-    cin >> n;
-    vector<ll> a(n);
-    cin >> a;
-
-    auto f = [&a](ll i, ll j) {
-        return a[j] + (i - j) * (i - j);
-    };
-
-    auto ans = monotone_minima<ll>(n, n, f);
-    rep (i, n) co(f(i, ans[i]));
+    int q;
+    cin >> q;
+    while (q--) {
+        ll n, m, r;
+        cin >> n >> m >> r;
+        ll ans = 0;
+        rep (k, 31) {
+            ans += floor_sum((n - r) / m + 1, 1l << (k + 1), m, r + (1l << k));
+            ans -= floor_sum((n - r) / m + 1, 1l << (k + 1), m, r);
+        }
+        co(ans);
+    }
 
     return 0;
 }

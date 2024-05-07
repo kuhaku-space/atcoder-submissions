@@ -1,169 +1,110 @@
+#line 1 "a.cpp"
+#define PROBLEM ""
+#line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
+#pragma GCC target("sse4.2,avx2,bmi2")
+#pragma GCC optimize("O3")
+#pragma GCC optimize("unroll-loops")
 #include <bits/stdc++.h>
-using namespace std;
-using ll = long long;
-using ld = long double;
-using P = pair<ll, ll>;
-using Pld = pair<ld, ld>;
-using Vec = vector<ll>;
-using VecP = vector<P>;
-using VecB = vector<bool>;
-using VecC = vector<char>;
-using VecD = vector<ld>;
-using VecS = vector<string>;
-template <class T>
-using Vec2 = vector<vector<T>>;
-#define REP(i, m, n) for(ll i = (m); i < (n); ++i)
-#define REPN(i, m, n) for(ll i = (m); i <= (n); ++i)
-#define REPR(i, m, n) for(ll i = (m)-1; i >= (n); --i)
-#define REPNR(i, m, n) for(ll i = (m); i >= (n); --i)
-#define rep(i, n) REP(i, 0, n)
-#define repn(i, n) REPN(i, 1, n)
-#define repr(i, n) REPR(i, n, 0)
-#define repnr(i, n) REPNR(i, n, 1)
+template <class T, class U>
+constexpr bool chmax(T &a, const U &b) {
+    return a < (T)b ? a = (T)b, true : false;
+}
+template <class T, class U>
+constexpr bool chmin(T &a, const U &b) {
+    return (T)b < a ? a = (T)b, true : false;
+}
+constexpr std::int64_t INF = 1000000000000000003;
+constexpr int Inf = 1000000003;
+constexpr double EPS = 1e-7;
+constexpr double PI = M_PI;
+#line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
+#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
+#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
+#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
+#define rep(i, n) FOR (i, 0, n)
+#define repn(i, n) FOR (i, 1, n + 1)
+#define repr(i, n) FORR (i, n, 0)
+#define repnr(i, n) FORR (i, n + 1, 1)
 #define all(s) (s).begin(), (s).end()
-#define pb push_back
-#define fs first
-#define sc second
-template <class T1, class T2>
-bool chmax(T1 &a, const T2 b){if(a < b){a = b; return true;} return false;}
-template <class T1, class T2>
-bool chmin(T1 &a, const T2 b){if(a > b){a = b; return true;} return false;}
-ll pow2(const int n){return (1LL << n);}
-void co() { cout << endl; }
-template <class Head, class... Tail>
-void co(Head&& head, Tail&&... tail) {
-    cout << head << ' ';
-    co(forward<Tail>(tail)...);
+#line 3 "/home/kuhaku/home/github/algo/lib/template/sonic.hpp"
+struct Sonic {
+    Sonic() {
+        std::ios::sync_with_stdio(false);
+        std::cin.tie(nullptr);
+        std::cout << std::fixed << std::setprecision(20);
+    }
+
+    constexpr void operator()() const {}
+} sonic;
+#line 5 "/home/kuhaku/home/github/algo/lib/template/atcoder.hpp"
+using namespace std;
+using ll = std::int64_t;
+using ld = long double;
+template <class T, class U>
+std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
+    return is >> p.first >> p.second;
 }
-void ce() { cerr << endl; }
-template <class Head, class... Tail>
-void ce(Head&& head, Tail&&... tail) {
-    cerr << head << ' ';
-    ce(forward<Tail>(tail)...);
+template <class T>
+std::istream &operator>>(std::istream &is, std::vector<T> &v) {
+    for (T &i : v) is >> i;
+    return is;
 }
-void sonic(){ios::sync_with_stdio(false); cin.tie(0);}
-void setp(const int n){cout << fixed << setprecision(n);}
-constexpr int INF = 1e9+1;
-constexpr ll LINF = 1e18L+1;
-constexpr ll MOD = 1e9L+7;
-constexpr ll MOD_N = 998244353;
-constexpr ld EPS = 1e-11;
-const double PI = acos(-1);
-
-template <int mod>
-struct ModInt {
-    int x;
-
-    ModInt() : x(0) {}
-
-    ModInt(int64_t y) : x(y >= 0 ? y % mod : (mod - (-y) % mod) % mod) {}
-
-    ModInt &operator+=(const ModInt &p) {
-        if((x += p.x) >= mod) x -= mod;
-        return *this;
+template <class T, class U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
+    return os << '(' << p.first << ',' << p.second << ')';
+}
+template <class T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+    for (auto it = v.begin(); it != v.end(); ++it) {
+        os << (it == v.begin() ? "" : " ") << *it;
     }
+    return os;
+}
+template <class Head, class... Tail>
+void co(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
+    else std::cout << head << ' ', co(std::forward<Tail>(tail)...);
+}
+template <class Head, class... Tail>
+void ce(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
+    else std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
+}
+template <typename T, typename... Args>
+auto make_vector(T x, int arg, Args... args) {
+    if constexpr (sizeof...(args) == 0) return std::vector<T>(arg, x);
+    else return std::vector(arg, make_vector<T>(x, args...));
+}
+void Yes(bool is_correct = true) {
+    std::cout << (is_correct ? "Yes" : "No") << '\n';
+}
+void No(bool is_not_correct = true) {
+    Yes(!is_not_correct);
+}
+void YES(bool is_correct = true) {
+    std::cout << (is_correct ? "YES" : "NO") << '\n';
+}
+void NO(bool is_not_correct = true) {
+    YES(!is_not_correct);
+}
+void Takahashi(bool is_correct = true) {
+    std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n';
+}
+void Aoki(bool is_not_correct = true) {
+    Takahashi(!is_not_correct);
+}
+#line 3 "a.cpp"
 
-    ModInt &operator-=(const ModInt &p) {
-        if((x += mod - p.x) >= mod) x -= mod;
-        return *this;
-    }
-
-    ModInt &operator*=(const ModInt &p) {
-        x = (int) (1LL * x * p.x % mod);
-        return *this;
-    }
-
-    ModInt &operator/=(const ModInt &p) {
-        *this *= p.inverse();
-        return *this;
-    }
-
-    ModInt &operator++() {
-        if((++x) >= mod) x -= mod;
-        return *this;
-    }
-
-    ModInt operator++(int) {
-        ModInt tmp(*this);
-        operator++();
-        return tmp;
-    }
-
-    ModInt &operator--() {
-        if((x += mod - 1) >= mod) x -= mod;
-        return *this;
-    }
-
-    ModInt operator--(int) {
-        ModInt tmp(*this);
-        operator--();
-        return tmp;
-    }
-
-    ModInt operator-() const { return ModInt(-x); }
-
-    ModInt operator+(const ModInt &p) const { return ModInt(*this) += p; }
-
-    ModInt operator-(const ModInt &p) const { return ModInt(*this) -= p; }
-
-    ModInt operator*(const ModInt &p) const { return ModInt(*this) *= p; }
-
-    ModInt operator/(const ModInt &p) const { return ModInt(*this) /= p; }
-
-    bool operator==(const ModInt &p) const { return x == p.x; }
-
-    bool operator!=(const ModInt &p) const { return x != p.x; }
-
-    ModInt inverse() const {
-        int a = x, b = mod, u = 1, v = 0, t;
-        while(b > 0) {
-            t = a / b;
-            swap(a -= t * b, b);
-            swap(u -= t * v, v);
-        }
-        return ModInt(u);
-    }
-
-    ModInt pow(int64_t n) const {
-        ModInt res(1), mul(x);
-        while(n > 0) {
-            if(n & 1) res *= mul;
-            mul *= mul;
-            n >>= 1;
-        }
-        return res;
-    }
-
-    friend ostream &operator<<(ostream &os, const ModInt &p) {
-        return os << p.x;
-    }
-
-    friend istream &operator>>(istream &is, ModInt &a) {
-        int64_t t;
-        is >> t;
-        a = ModInt< mod >(t);
-        return (is);
-    }
-
-    static int get_mod() { return mod; }
-};
-using Mint = ModInt<10000>;
-
-int main(void){
-    ll n;
+int main(void) {
+    int n;
     cin >> n;
-    Vec p(n);
-    rep(i, n) cin >> p[i];
+    vector<int> a(n);
+    cin >> a;
 
-    bitset<10005> dp;
+    bitset<10001> dp;
     dp[0] = true;
-
-    rep(i, n){
-        repr(j, 10005){
-            if (j >= p[i] && dp[j - p[i]]) dp[j] = true;
-        }
-    }
-    cout << dp.count() << endl;
+    for (int x : a) dp |= dp << x;
+    co(dp.count());
 
     return 0;
 }

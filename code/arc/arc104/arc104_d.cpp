@@ -686,23 +686,45 @@ int main(void) {
     cin >> n >> k >> m;
     Mint::set_mod(m);
 
+    vector<Mint> dp(500001);
+    dp[0] = 1;
+    int s = 0;
     repn (x, n) {
         if (x == 1 || x == n) {
             co(k);
             continue;
         }
-        vector<Mint> dp(500001);
-        dp[0] = 1;
-        int s = 0;
-        repn (i, n) {
-            int d = i - x;
+        if (x == 2) {
+            repn (i, n) {
+                int d = i - x;
+                if (d < 0) {
+                    d = -d;
+                    s += d * k;
+                }
+                if (d == 0) {
+                    rep (j, dp.size()) dp[j] *= k + 1;
+                    continue;
+                }
+                repr (j, dp.size() - (k + 1) * d) {
+                    dp[j + (k + 1) * d] -= dp[j];
+                }
+                rep (j, dp.size() - d) {
+                    dp[j + d] += dp[j];
+                }
+            }
+            co(dp[s] - 1);
+        } else {
+            int d = n - (x - 1);
+            rep (j, dp.size() - (k + 1) * d) {
+                dp[j + (k + 1) * d] += dp[j];
+            }
+            repr (j, dp.size() - d) {
+                dp[j + d] -= dp[j];
+            }
+            d = 1 - x;
             if (d < 0) {
                 d = -d;
                 s += d * k;
-            }
-            if (d == 0) {
-                rep (j, dp.size()) dp[j] *= k + 1;
-                continue;
             }
             repr (j, dp.size() - (k + 1) * d) {
                 dp[j + (k + 1) * d] -= dp[j];
@@ -710,8 +732,8 @@ int main(void) {
             rep (j, dp.size() - d) {
                 dp[j + d] += dp[j];
             }
+            co(dp[s] - 1);
         }
-        co(dp[s] - 1);
     }
 
     return 0;

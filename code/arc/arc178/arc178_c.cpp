@@ -88,9 +88,23 @@ void Aoki(bool is_not_correct = true) {
     Takahashi(!is_not_correct);
 }
 int main(void) {
-    int n;
-    cin >> n;
-    int m = (n + 1) / 2;
-    co((double)m / n);
+    int n, l;
+    cin >> n >> l;
+    vector<int> a(n);
+    cin >> a;
+    int len = 200005;
+    vector<int> dp(len, Inf);
+    dp[0] = 0;
+    rep (i, l / 2) {
+        ll d = ll(i + 1) * (l - i - 1);
+        if (d >= len)
+            continue;
+        rep (i, len - d) chmin(dp[i + d], dp[i] + 1);
+    }
+    rep (i, len) {
+        if (dp[i] == Inf)
+            dp[i] = -1;
+    }
+    rep (i, n) co(dp[a[i]]);
     return 0;
 }

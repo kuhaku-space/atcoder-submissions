@@ -1,6 +1,4 @@
-#line 1 "a.cpp"
 #define PROBLEM ""
-#line 2 "/home/kuhaku/github/algo/lib/template/template.hpp"
 #pragma GCC target("sse4.2,avx2,bmi2")
 #pragma GCC optimize("O3")
 #pragma GCC optimize("unroll-loops")
@@ -16,8 +14,7 @@ constexpr bool chmin(T &a, const U &b) {
 constexpr std::int64_t INF = 1000000000000000003;
 constexpr int Inf = 1000000003;
 constexpr double EPS = 1e-7;
-constexpr double PI = 3.14159265358979323846;
-#line 3 "/home/kuhaku/github/algo/lib/template/macro.hpp"
+constexpr double PI = M_PI;
 #define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
 #define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
 #define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
@@ -26,17 +23,14 @@ constexpr double PI = 3.14159265358979323846;
 #define repr(i, n) FORR (i, n, 0)
 #define repnr(i, n) FORR (i, n + 1, 1)
 #define all(s) (s).begin(), (s).end()
-#line 3 "/home/kuhaku/github/algo/lib/template/sonic.hpp"
 struct Sonic {
     Sonic() {
         std::ios::sync_with_stdio(false);
         std::cin.tie(nullptr);
         std::cout << std::fixed << std::setprecision(20);
     }
-
     constexpr void operator()() const {}
 } sonic;
-#line 5 "/home/kuhaku/github/algo/lib/template/atcoder.hpp"
 using namespace std;
 using ll = std::int64_t;
 using ld = long double;
@@ -93,21 +87,17 @@ void Takahashi(bool is_correct = true) {
 void Aoki(bool is_not_correct = true) {
     Takahashi(!is_not_correct);
 }
-#line 3 "a.cpp"
-
 int main(void)
 {
     int n;
     cin >> n;
     vector<int> a(2 * n);
     cin >> a;
-
     int ans = 0;
     rep(i, 2 * n - 2)
     {
         ans += a[i] == a[i + 2];
     }
     co(ans);
-
     return 0;
 }

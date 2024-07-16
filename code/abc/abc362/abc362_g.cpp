@@ -1,123 +1,92 @@
 // competitive-verifier: PROBLEM
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/priority_queue.hpp>
-#include <ext/pb_ds/tag_and_trait.hpp>
-#include <ext/pb_ds/tree_policy.hpp>
-#include <algorithm>
-#include <iterator>
+#include <cassert>
+#include <queue>
+#include <string>
 #include <vector>
 /**
- * @brief 座標圧縮
+ * @brief Aho Corasick 法
+ * @see https://naoya-2.hatenadiary.org/entry/20090405/aho_corasick
+ * @see https://ei1333.github.io/library/string/aho-corasick.hpp.html
  *
- * @tparam T 要素の型
+ * @tparam char_size
+ * @tparam base
  */
-template <class T>
-struct coordinate_compression {
-    coordinate_compression() = default;
-    coordinate_compression(const std::vector<T> &_data) : data(_data) { build(); }
-    const T &operator[](int i) const { return data[i]; }
-    T &operator[](int i) { return data[i]; }
-    void add(T x) { data.emplace_back(x); }
-    void build() {
-        std::sort(std::begin(data), std::end(data));
-        data.erase(std::unique(std::begin(data), std::end(data)), std::end(data));
-    }
-    bool exists(T x) const {
-        auto it = std::lower_bound(std::begin(data), std::end(data), x);
-        return it != std::end(data) && *it == x;
-    }
-    int get(T x) const {
-        auto it = std::lower_bound(std::begin(data), std::end(data), x);
-        return std::distance(std::begin(data), it);
-    }
-    int size() const { return std::size(data); }
+template <int char_size, int base>
+struct aho_corasick {
   private:
-    std::vector<T> data;
-};
-/**
- * @brief 座標圧縮
- *
- * @tparam T 要素の型
- * @param v 配列
- * @return std::vector<T>
- */
-template <class T>
-std::vector<T> compress(const std::vector<T> &v) {
-    coordinate_compression cps(v);
-    std::vector<T> res;
-    res.reserve(std::size(v));
-    for (auto &&x : v) res.emplace_back(cps.get(x));
-    return res;
-}
-#include <cstdint>
-#include <random>
-#include <string>
-/**
- * @brief ローリングハッシュ
- * @see https://qiita.com/keymoon/items/11fac5627672a6d6a9f6
- * @see https://yosupo.hatenablog.com/entry/2023/08/06/181942
- */
-struct rolling_hash {
-    rolling_hash(const std::string &_s, uint64_t base = (std::uint64_t)std::random_device()() + 2)
-        : len(_s.size() + 1), base(base), data(1), p(1, 1) {
-        std::uint64_t x = 0, t = 1, y;
-        for (const auto c : _s) {
-            x = _mul(x, base) + c;
-            x = (__builtin_usubl_overflow(x, mod, &y) ? x : y);
-            data.emplace_back(x);
-            t = _mul(t, base);
-            p.emplace_back(t);
+    struct _node {
+        std::vector<int> next_node;
+        _node() : next_node(char_size, -1) {}
+        int next(int x) const { return next_node[x]; }
+    };
+  public:
+    using node_type = _node;
+    aho_corasick() : nodes(), failure() { nodes.emplace_back(); }
+    int size() const { return nodes.size(); }
+    int get_failure(int k) const { return failure[k]; }
+    std::vector<int> build() {
+        failure = std::vector<int>(size(), 0);
+        std::vector<int> ord;
+        ord.emplace_back(0);
+        for (int k = 0; k < size(); ++k) {
+            int x = ord[k];
+            for (int i = 0; i < char_size; ++i) {
+                int next_x = nodes[x].next(i);
+                if (next_x != -1) {
+                    ord.emplace_back(next_x);
+                    if (k == 0) continue;
+                    int y = x;
+                    do {
+                        y = failure[y];
+                        int next_y = nodes[y].next(i);
+                        if (next_y != -1) {
+                            failure[next_x] = next_y;
+                            break;
+                        }
+                    } while (y != 0);
+                }
+            }
         }
+        return ord;
     }
-    std::uint64_t get_base() const { return base; }
-    /// get hash of s[l...r]
-    std::uint64_t get(int l, int r) const {
-        std::uint64_t x = data[r] + mod - _mul(data[l], p[r - l]), y;
-        return __builtin_usubl_overflow(x, mod, &y) ? x : y;
-    }
-    /// search string
-    std::vector<int> search(const std::string &s) {
+    std::vector<int> insert(const std::string &word) {
         std::vector<int> res;
-        int n = s.size();
-        if (n >= len) return res;
-        std::uint64_t x = 0, y;
-        for (char c : s) {
-            x = _mul(x, base) + c;
-            x = (__builtin_usubl_overflow(x, mod, &y) ? x : y);
-        }
-        for (int i = 0; i < len - n; ++i) {
-            if (get(i, i + n) == x) res.emplace_back(i);
+        int node_id = 0;
+        for (int i = 0; i < (int)word.size(); ++i) {
+            int &next_id = nodes[node_id].next_node[word[i] - base];
+            if (next_id == -1) {
+                next_id = nodes.size();
+                nodes.emplace_back();
+            }
+            node_id = next_id;
+            res.emplace_back(node_id);
         }
         return res;
     }
-    std::uint64_t hash(const std::string &s) const {
-        std::uint64_t x = 0, y;
-        for (const auto c : s) {
-            x = _mul(x, base) + c;
-            x = (__builtin_usubl_overflow(x, mod, &y) ? x : y);
+    int search(const char c, int now = 0) {
+        int next_id = nodes[now].next(c - base);
+        while (next_id == -1 && now != 0) {
+            now = failure[now];
+            next_id = nodes[now].next(c - base);
         }
-        return x;
+        return next_id != -1 ? next_id : 0;
+    }
+    std::vector<int> search(const std::string &str, int now = 0) {
+        std::vector<int> res;
+        res.emplace_back(now);
+        for (auto c : str) {
+            now = search(c, now);
+            res.emplace_back(now);
+        }
+        return res;
+    }
+    node_type get_node(int node_id) const {
+        assert(0 <= node_id && node_id < (int)nodes.size());
+        return nodes[node_id];
     }
   private:
-    static constexpr std::uint64_t mod = (1ul << 61) - 1;
-    static constexpr std::uint64_t mask30 = (1ul << 30) - 1;
-    static constexpr std::uint64_t mask31 = (1ul << 31) - 1;
-    int len;
-    std::uint64_t base;
-    std::vector<std::uint64_t> data, p;
-    constexpr std::uint64_t _mul(std::uint64_t a, std::uint64_t b) const {
-        __uint128_t t = (__uint128_t)a * b;
-        a = (t >> 61) + (t & mod);
-        return __builtin_usubl_overflow(a, mod, &b) ? a : b;
-    }
-    constexpr std::uint64_t _pow(std::uint64_t x, std::uint64_t k) const {
-        std::uint64_t res = 1;
-        for (; k; k >>= 1) {
-            if (k & 1) res = _mul(res, x);
-            x = _mul(x, x);
-        }
-        return res;
-    }
+    std::vector<node_type> nodes;
+    std::vector<int> failure;
 };
 #ifdef ATCODER
 #pragma GCC target("sse4.2,avx512f,avx512dq,avx512ifma,avx512cd,avx512bw,avx512vl,bmi2")
@@ -192,44 +161,27 @@ void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n");
 void NO(bool is_not_correct = true) { YES(!is_not_correct); }
 void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
 void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
-using namespace __gnu_pbds;
-template <typename T, typename S>
-using hash_table = gp_hash_table<T, S>;
 int main(void) {
     string s;
     cin >> s;
-    int n = s.size();
     int q;
     cin >> q;
-    vector<string> v(q);
-    cin >> v;
-    rolling_hash rh(s);
     vector<int> a(q);
-    rep (i, q) a[i] = v[i].size();
-    coordinate_compression cps(a);
-    vector queries(cps.size(), vector<int>());
-    rep (i, q) queries[cps.get(a[i])].emplace_back(i);
-    vector<int> ans(q);
-    rep (i, cps.size()) {
-        int l = cps[i];
-        hash_table<uint64_t, int> ht;
-        hash_table<uint64_t, vector<int>> li;
-        for (int idx : queries[i]) {
-            auto h = rh.hash(v[idx]);
-            li[h].emplace_back(idx);
-            ht[h] = 0;
-        }
-        rep (j, n - l + 1) {
-            auto h = rh.get(j, j + l);
-            if (ht.find(h) != ht.end())
-                ht[h]++;
-        }
-        for (auto [x, y] : ht) {
-            for (int idx : li[x]) {
-                ans[idx] = y;
-            }
-        }
+    aho_corasick<26, 'a'> aho;
+    rep (i, q) {
+        string t;
+        cin >> t;
+        auto v = aho.insert(t);
+        a[i] = v.back();
     }
-    rep (i, q) co(ans[i]);
+    auto ord = aho.build();
+    auto v = aho.search(s);
+    vector<ll> dp(aho.size());
+    for (int x : v) ++dp[x];
+    reverse(all(ord));
+    for (int i : ord) {
+        dp[aho.get_failure(i)] += dp[i];
+    }
+    rep (i, q) co(dp[a[i]]);
     return 0;
 }

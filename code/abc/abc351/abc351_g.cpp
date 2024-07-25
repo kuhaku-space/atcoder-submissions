@@ -585,13 +585,100 @@ void NO(bool is_not_correct = true) { YES(!is_not_correct); }
 void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
 void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
 using Mint = modint998;
+template <class Key, class Value>
+struct radix_heap {
+    using key_type = Key;
+    using value_type = Value;
+    radix_heap() : data{}, _last(), _size() {}
+    constexpr int size() const {
+        return _size;
+    }
+    constexpr bool empty() const {
+        return _size == 0;
+    }
+    void push(const std::pair<Key, Value> &p) {
+        assert(p.second >= _last);
+        ++_size;
+        data[find_bucket(p.second ^ _last)].emplace_back(p);
+    }
+    void emplace(const Key &key, const Value &value) {
+        assert(value >= _last);
+        ++_size;
+        data[find_bucket(value ^ _last)].emplace_back(key, value);
+    }
+    void emplace(Key &&key, Value &&value) {
+        assert(value >= _last);
+        ++_size;
+        data[find_bucket(value ^ _last)].emplace_back(key, value);
+    }
+    auto top() {
+        if (data[0].empty())
+            relocate();
+        return data[0].back();
+    }
+    void pop() {
+        assert(_size);
+        if (data[0].empty())
+            relocate();
+        data[0].pop_back();
+        --_size;
+    }
+    void clear() {
+        int k = 0;
+        while (_size) {
+            _size -= data[k].size();
+            data[k++].clear();
+        }
+        _last = Value();
+    }
+  private:
+    std::vector<std::pair<Key, Value>> data[std::numeric_limits<Value>::digits + 1];
+    Value _last;
+    int _size;
+    int find_bucket(Value value) const {
+        return value == 0 ? 0 : std::numeric_limits<Value>::digits - clz(value);
+    }
+    template <class U>
+    int clz(U x) const {
+        static_assert(std::is_integral_v<U>);
+        if constexpr (std::is_signed_v<U>)
+            return clz_unsigned(std::make_unsigned_t<U>(x)) - 1;
+        else
+            return clz_unsigned(x);
+    }
+    template <class U>
+    int clz_unsigned(U x) const {
+        static_assert(std::is_integral_v<U> && std::is_unsigned_v<U>);
+        if constexpr (std::is_same_v<U, unsigned int>)
+            return __builtin_clz(x);
+        else if constexpr (std::is_same_v<U, unsigned long>)
+            return __builtin_clzl(x);
+        else if constexpr (std::is_same_v<U, unsigned long long>)
+            return __builtin_clzll(x);
+        else
+            return -1;
+    }
+    void relocate() {
+        int k = 1;
+        while (data[k].empty()) ++k;
+        Value new_last =
+            std::min_element(data[k].begin(), data[k].end(), [](const auto &a, const auto &b) {
+                return a.second < b.second;
+            })->second;
+        for (auto &p : data[k]) {
+            data[find_bucket(p.second ^ new_last)].emplace_back(p);
+        }
+        _last = new_last;
+        data[k].clear();
+    }
+};
 enum Type { Vertex, Compress, Rake, AddEdge, AddVertex };
 // g must be a rooted tree
 struct StaticTopTree {
     StaticTopTree(vector<vector<int>> &_g, int _root = 0)
         : _size(4 * _g.size()), g(_g), _root(_root) {
         _parent.resize(_size, -1), _left.resize(_size, -1), _right.resize(_size, -1);
-        T.resize(_size, Type::Vertex);
+        _type.resize(_size, Type::Vertex);
         add_buf = g.size();
         build();
     }
@@ -611,7 +698,7 @@ struct StaticTopTree {
         return _right[k];
     }
     int type(int k) const {
-        return T[k];
+        return _type[k];
     }
     template <class F>
     void solve(F update) {
@@ -630,17 +717,18 @@ struct StaticTopTree {
     int _root;                           // an index of the root in g
     int stt_root;                        // an index of the root in static top tree
     vector<int> _parent, _left, _right;  // parent, left child, right child
-    vector<Type> T;                      // type of vertices
+    vector<Type> _type;                  // type of vertices
     int add_buf;                         // a variable for the member function
+    radix_heap<int, int> p_que;
     void build() {
-        dfs0(_root);
+        dfs_build(_root);
         auto [i, n] = compress(_root);
         stt_root = i;
     }
-    int dfs0(int c) {
+    int dfs_build(int c) {
         int s = 1, best = 0;
         for (int &d : g[c]) {
-            int t = dfs0(d);
+            int t = dfs_build(d);
             s += t;
             if (best < t)
                 best = t, swap(d, g[c][0]);
@@ -650,28 +738,42 @@ struct StaticTopTree {
     int add(int k, int l, int r, Type t) {
         if (k == -1)
             k = add_buf++;
-        _parent[k] = -1, _left[k] = l, _right[k] = r, T[k] = t;
+        _parent[k] = -1, _left[k] = l, _right[k] = r, _type[k] = t;
         if (l != -1)
             _parent[l] = k;
         if (r != -1)
             _parent[r] = k;
         return k;
     }
-    pair<int, int> merge(const vector<pair<int, int>> &a, Type t) {
+    pair<int, int> stable_merge(const vector<pair<int, int>> &a, Type t) {
         if (a.size() == 1)
             return a[0];
         int u = 0;
         for (auto &[_, s] : a) u += s;
         vector<pair<int, int>> b, c;
         for (auto &[i, s] : a) (u > s ? b : c).emplace_back(i, s), u -= s * 2;
-        auto [i, si] = merge(b, t);
-        auto [j, sj] = merge(c, t);
+        auto [i, si] = stable_merge(b, t);
+        auto [j, sj] = stable_merge(c, t);
         return {add(-1, i, j, t), si + sj};
+    }
+    pair<int, int> merge(const vector<pair<int, int>> &a, Type t) {
+        if (a.size() == 1)
+            return a[0];
+        p_que.clear();
+        for (auto [x, y] : a) p_que.emplace(x, y);
+        while (p_que.size() >= 2) {
+            auto [i, si] = p_que.top();
+            p_que.pop();
+            auto [j, sj] = p_que.top();
+            p_que.pop();
+            p_que.emplace(add(-1, i, j, t), si + sj);
+        }
+        return p_que.top();
     }
     pair<int, int> compress(int i) {
         vector<pair<int, int>> chs{add_vertex(i)};
         while (!g[i].empty()) chs.push_back(add_vertex(i = g[i][0]));
-        return merge(chs, Type::Compress);
+        return stable_merge(chs, Type::Compress);
     }
     pair<int, int> rake(int i) {
         vector<pair<int, int>> chs;

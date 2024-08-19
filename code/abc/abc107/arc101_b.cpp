@@ -140,7 +140,6 @@ int main(void) {
             bit.add(s[i], 1);
         }
 
-        ce(m, c, sum);
         ll x = n * (n + 1) / 2;
         if(sum >= (x + 1) / 2)
             l = m;

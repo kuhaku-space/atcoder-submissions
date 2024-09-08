@@ -1,77 +1,8 @@
 // competitive-verifier: PROBLEM
-#ifdef ATCODER
-#pragma GCC target("sse4.2,avx512f,avx512dq,avx512ifma,avx512cd,avx512bw,avx512vl,bmi2")
-#endif
-#pragma GCC optimize("Ofast,fast-math,unroll-all-loops")
-#include <bits/stdc++.h>
-#ifndef ATCODER
-#pragma GCC target("sse4.2,avx2,bmi2")
-#endif
-template <class T, class U>
-constexpr bool chmax(T &a, const U &b) {
-    return a < (T)b ? a = (T)b, true : false;
-}
-template <class T, class U>
-constexpr bool chmin(T &a, const U &b) {
-    return (T)b < a ? a = (T)b, true : false;
-}
-constexpr std::int64_t INF = 1000000000000000003;
-constexpr int Inf = 1000000003;
-constexpr double EPS = 1e-7;
-constexpr double PI = 3.14159265358979323846;
-#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
-#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
-#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
-#define rep(i, n) FOR (i, 0, n)
-#define repn(i, n) FOR (i, 1, n + 1)
-#define repr(i, n) FORR (i, n, 0)
-#define repnr(i, n) FORR (i, n + 1, 1)
-#define all(s) (s).begin(), (s).end()
-struct Sonic {
-    Sonic() {
-        std::ios::sync_with_stdio(false);
-        std::cin.tie(nullptr);
-        std::cout << std::fixed << std::setprecision(20);
-    }
-    constexpr void operator()() const {}
-} sonic;
-using namespace std;
-using ll = std::int64_t;
-using ld = long double;
-template <class T, class U>
-std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
-    return is >> p.first >> p.second;
-}
-template <class T>
-std::istream &operator>>(std::istream &is, std::vector<T> &v) {
-    for (T &i : v) is >> i;
-    return is;
-}
-template <class T, class U>
-std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
-    return os << '(' << p.first << ',' << p.second << ')';
-}
-template <class T>
-std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
-    for (auto it = v.begin(); it != v.end(); ++it) os << (it == v.begin() ? "" : " ") << *it;
-    return os;
-}
-template <class Head, class... Tail>
-void co(Head &&head, Tail &&...tail) {
-    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
-    else std::cout << head << ' ', co(std::forward<Tail>(tail)...);
-}
-template <class Head, class... Tail>
-void ce(Head &&head, Tail &&...tail) {
-    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
-    else std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
-}
-void Yes(bool is_correct = true) { std::cout << (is_correct ? "Yes\n" : "No\n"); }
-void No(bool is_not_correct = true) { Yes(!is_not_correct); }
-void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n"); }
-void NO(bool is_not_correct = true) { YES(!is_not_correct); }
-void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
-void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
+#include <cstdint>
+#include <utility>
+#include <vector>
+#include <iostream>
 namespace internal {
 struct graph_csr {
   private:
@@ -122,6 +53,7 @@ struct graph_csr {
     std::vector<int> start;
 };
 }  // namespace internal
+#include <stack>
 /**
  * @brief 重み付きグラフ
  *
@@ -487,51 +419,120 @@ struct functional_graph {
         return res;
     }
 };
-int main(void)
-{
+#ifdef ATCODER
+#pragma GCC target("sse4.2,avx512f,avx512dq,avx512ifma,avx512cd,avx512bw,avx512vl,bmi2")
+#endif
+#pragma GCC optimize("Ofast,fast-math,unroll-all-loops")
+#include <bits/stdc++.h>
+#ifndef ATCODER
+#pragma GCC target("sse4.2,avx2,bmi2")
+#endif
+template <class T, class U>
+constexpr bool chmax(T &a, const U &b) {
+    return a < (T)b ? a = (T)b, true : false;
+}
+template <class T, class U>
+constexpr bool chmin(T &a, const U &b) {
+    return (T)b < a ? a = (T)b, true : false;
+}
+constexpr std::int64_t INF = 1000000000000000003;
+constexpr int Inf = 1000000003;
+constexpr double EPS = 1e-7;
+constexpr double PI = 3.14159265358979323846;
+#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
+#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
+#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
+#define rep(i, n) FOR (i, 0, n)
+#define repn(i, n) FOR (i, 1, n + 1)
+#define repr(i, n) FORR (i, n, 0)
+#define repnr(i, n) FORR (i, n + 1, 1)
+#define all(s) (s).begin(), (s).end()
+struct Sonic {
+    Sonic() {
+        std::ios::sync_with_stdio(false);
+        std::cin.tie(nullptr);
+        std::cout << std::fixed << std::setprecision(20);
+    }
+    constexpr void operator()() const {}
+} sonic;
+using namespace std;
+using ll = std::int64_t;
+using ld = long double;
+template <class T, class U>
+std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
+    return is >> p.first >> p.second;
+}
+template <class T>
+std::istream &operator>>(std::istream &is, std::vector<T> &v) {
+    for (T &i : v) is >> i;
+    return is;
+}
+template <class T, class U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
+    return os << '(' << p.first << ',' << p.second << ')';
+}
+template <class T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+    for (auto it = v.begin(); it != v.end(); ++it) os << (it == v.begin() ? "" : " ") << *it;
+    return os;
+}
+template <class Head, class... Tail>
+void co(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
+    else std::cout << head << ' ', co(std::forward<Tail>(tail)...);
+}
+template <class Head, class... Tail>
+void ce(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
+    else std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
+}
+void Yes(bool is_correct = true) { std::cout << (is_correct ? "Yes\n" : "No\n"); }
+void No(bool is_not_correct = true) { Yes(!is_not_correct); }
+void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n"); }
+void NO(bool is_not_correct = true) { YES(!is_not_correct); }
+void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
+void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
+template <class F>
+std::int64_t meguru_binary_search(std::int64_t ok, std::int64_t ng, F check) {
+    while (abs(ok - ng) > 1) {
+        std::int64_t mid = (ok + ng) / 2;
+        (check(mid) ? ok : ng) = mid;
+    }
+    return ok;
+}
+int main(void) {
     int n, k;
     cin >> n >> k;
     vector<int> a(n);
     cin >> a;
     ll s = accumulate(all(a), 0l);
-    rep(i, n) a.emplace_back(a[i]);
+    rep (i, n) a.emplace_back(a[i]);
     a.emplace_back(0);
-    repr(i, 2 * n) a[i] += a[i + 1];
+    repr (i, 2 * n) a[i] += a[i + 1];
     ll l = 0, r = s;
     ll ans = 0;
-    while (r - l > 1)
-    {
+    while (r - l > 1) {
         ll w = (l + r) / 2;
         vector<int> v(2 * n + 2);
         v[2 * n + 1] = 2 * n + 1;
-        rep(i, 2 * n + 1)
-        {
+        rep (i, 2 * n + 1) {
             int f = i, g = 2 * n + 1;
-            while (g - f > 1)
-            {
-                int m = (f + g) / 2;
-                if (a[i] - a[m] >= w)
-                    g = m;
-                else
-                    f = m;
-            }
-            v[i] = g;
+            auto check = [&](int x) {
+                return a[i] - a[x] >= w;
+            };
+            v[i] = meguru_binary_search(g, f, check);
         }
         functional_graph fg(v);
         auto jp = fg.jump_all(k);
         int c = 0;
-        rep(i, n)
-        {
+        rep (i, n) {
             if (jp[i] - i <= n)
                 ++c;
         }
-        if (c)
-        {
+        if (c) {
             l = w;
             ans = n - c;
-        }
-        else
-        {
+        } else {
             r = w;
         }
     }

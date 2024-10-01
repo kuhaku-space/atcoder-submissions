@@ -1,140 +1,3 @@
-// competitive-verifier: PROBLEM
-#include <cmath>
-#include <cstdint>
-#include <numeric>
-/// @brief めぐる式二分探索
-template <class T, class F>
-std::int64_t meguru_binary_search(T ok, T ng, F check) {
-    while (std::abs(ok - ng) > 1) {
-        T mid = std::midpoint(ok, ng);
-        (check(mid) ? ok : ng) = mid;
-    }
-    return ok;
-}
-#include <algorithm>
-#include <iterator>
-#include <vector>
-/**
- * @brief 座標圧縮
- *
- * @tparam T 要素の型
- */
-template <class T>
-struct coordinate_compression {
-    coordinate_compression() = default;
-    coordinate_compression(const std::vector<T> &_data) : data(_data) { build(); }
-    const T &operator[](int i) const { return data[i]; }
-    void add(T x) { data.emplace_back(x); }
-    void build() {
-        std::sort(data.begin(), data.end());
-        data.erase(std::unique(data.begin(), data.end()), data.end());
-    }
-    bool exists(T x) const {
-        auto it = std::lower_bound(data.begin(), data.end(), x);
-        return it != data.end() && *it == x;
-    }
-    int get(T x) const {
-        auto it = std::lower_bound(data.begin(), data.end(), x);
-        return std::distance(data.begin(), it);
-    }
-    int size() const { return data.size(); }
-  private:
-    std::vector<T> data;
-};
-/**
- * @brief 座標圧縮
- *
- * @tparam T 要素の型
- * @param v 配列
- * @return std::vector<T>
- */
-template <class T>
-std::vector<int> compress(const std::vector<T> &v) {
-    coordinate_compression cps(v);
-    std::vector<int> res;
-    res.reserve(std::size(v));
-    for (auto &&x : v) res.emplace_back(cps.get(x));
-    return res;
-}
-#include <cassert>
-/**
- * @brief フェニック木
- * @see http://hos.ac/slides/20140319_bit.pdf
- *
- * @tparam T
- */
-template <class T>
-struct fenwick_tree {
-    fenwick_tree() : _size(), data() {}
-    fenwick_tree(int n) : _size(n + 1), data(n + 1) {}
-    template <class U>
-    fenwick_tree(const std::vector<U> &v) : _size((int)v.size() + 1), data((int)v.size() + 1) {
-        build(v);
-    }
-    T operator[](int i) const { return sum(i, i + 1); }
-    T at(int k) const { return operator[](k); }
-    T get(int k) const { return operator[](k); }
-    template <class U>
-    void build(const std::vector<U> &v) {
-        for (int i = 0, n = v.size(); i < n; ++i) data[i + 1] = v[i];
-        for (int i = 1; i < _size; ++i) {
-            if (i + (i & -i) < _size) data[i + (i & -i)] += data[i];
-        }
-    }
-    void set(int k, T val) { add(k, val - at(k)); }
-    void update(int k, T val) { set(k); }
-    void add(int k, T val) {
-        assert(0 <= k && k < _size - 1);
-        for (++k; k < _size; k += k & -k) data[k] += val;
-    }
-    bool chmax(int k, T val) {
-        if (at(k) >= val) return false;
-        set(k, val);
-        return true;
-    }
-    bool chmin(int k, T val) {
-        if (at(k) <= val) return false;
-        set(k, val);
-        return true;
-    }
-    T all_prod() const { return prod(_size - 1); }
-    T prod(int k) const { return sum(k); }
-    T prod(int a, int b) const { return sum(a, b); }
-    T all_sum() const { return sum(_size - 1); }
-    T sum(int k) const {
-        assert(0 <= k && k < _size);
-        T res = 0;
-        for (; k > 0; k -= k & -k) res += data[k];
-        return res;
-    }
-    T sum(int a, int b) const {
-        assert(0 <= a && a <= b && b < _size);
-        T res = T();
-        while (a != b) {
-            if (a < b) {
-                res += data[b];
-                b -= b & -b;
-            } else {
-                res -= data[a];
-                a -= a & -a;
-            }
-        }
-        return res;
-    }
-    int lower_bound(T val) const {
-        if (val <= 0) return 0;
-        int k = 1;
-        while (k < _size) k <<= 1;
-        int res = 0;
-        for (; k > 0; k >>= 1) {
-            if (res + k < _size && data[res + k] < val) val -= data[res += k];
-        }
-        return res;
-    }
-  private:
-    int _size;
-    std::vector<T> data;
-};
 #ifdef ATCODER
 #pragma GCC target("sse4.2,avx512f,avx512dq,avx512ifma,avx512cd,avx512bw,avx512vl,bmi2")
 #endif
@@ -143,145 +6,608 @@ struct fenwick_tree {
 #ifndef ATCODER
 #pragma GCC target("sse4.2,avx2,bmi2")
 #endif
-template <class T, class U>
-constexpr bool chmax(T &a, const U &b) {
-    return a < (T)b ? a = (T)b, true : false;
-}
-template <class T, class U>
-constexpr bool chmin(T &a, const U &b) {
-    return (T)b < a ? a = (T)b, true : false;
-}
-constexpr std::int64_t INF = 1000000000000000003;
-constexpr int Inf = 1000000003;
-constexpr double EPS = 1e-7;
-constexpr double PI = 3.14159265358979323846;
-#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
-#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
-#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
-#define rep(i, n) FOR (i, 0, n)
-#define repn(i, n) FOR (i, 1, n + 1)
-#define repr(i, n) FORR (i, n, 0)
-#define repnr(i, n) FORR (i, n + 1, 1)
-#define all(s) (s).begin(), (s).end()
-struct Sonic {
-    Sonic() {
-        std::ios::sync_with_stdio(false);
-        std::cin.tie(nullptr);
-        std::cout << std::fixed << std::setprecision(20);
-    }
-    constexpr void operator()() const {}
-} sonic;
+#include <bits/stdc++.h>
+
 using namespace std;
-using ll = std::int64_t;
-using ld = long double;
-template <class T, class U>
-std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
-    return is >> p.first >> p.second;
+#define SZ(x) (int)(x).size()
+#define REP(i, n) for (int i = 0; i < (n); i++)
+#define FOR(i, a, b) for (auto i = (a); i < (b); i++)
+#define For(i, a, b, c) for (auto i = (a); i != (b); i += (c))
+#define REPR(i, n) for (auto i = (n) - 1; i >= 0; i--)
+#define ALL(s) (s).begin(), (s).end()
+#define so(V) sort(ALL(V))
+#define rev(V) reverse(ALL(V))
+#define uni(v) v.erase(unique(ALL(v)), (v).end())
+#define eb emplace_back
+
+typedef unsigned long long ull;
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<ll> vll;
+typedef vector<bool> vb;
+typedef vector<vi> vvi;
+typedef vector<vll> vvll;
+typedef pair<int, int> PI;
+typedef pair<ll, ll> PL;
+const double EPS = 1e-6;
+const int MOD = 1e9 + 7;
+const int INF = (1 << 30);
+const ll LINF = 1e18;
+const double math_PI = acos(-1);
+
+template <typename T>
+vector<T> make_v(size_t a) {
+    return vector<T>(a);
 }
+
+template <typename T, typename... Ts>
+auto make_v(size_t a, Ts... ts) {
+    return vector<decltype(make_v<T>(ts...))>(a, make_v<T>(ts...));
+}
+
+template <typename T, typename V>
+typename enable_if<is_class<T>::value == 0>::type fill_v(T &t, const V &v) {
+    t = v;
+}
+
+template <typename T, typename V>
+typename enable_if<is_class<T>::value != 0>::type fill_v(T &t, const V &v) {
+    for (auto &e : t) fill_v(e, v);
+}
+
 template <class T>
-std::istream &operator>>(std::istream &is, std::vector<T> &v) {
-    for (T &i : v) is >> i;
+bool chmax(T &a, const T &b) {
+    if (a < b) {
+        a = b;
+        return true;
+    }
+    return false;
+}
+
+template <class T>
+bool chmin(T &a, const T &b) {
+    if (a > b) {
+        a = b;
+        return true;
+    }
+    return false;
+}
+
+template <typename S, typename T>
+istream &operator>>(istream &is, pair<S, T> &p) {
+    cin >> p.first >> p.second;
     return is;
 }
-template <class T, class U>
-std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
-    return os << '(' << p.first << ',' << p.second << ')';
+
+template <typename T>
+istream &operator>>(istream &is, vector<T> &vec) {
+    for (T &x : vec) is >> x;
+    return is;
 }
-template <class T>
-std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
-    for (auto it = v.begin(); it != v.end(); ++it) os << (it == v.begin() ? "" : " ") << *it;
+
+template <typename T>
+string join(vector<T> &vec, string splitter) {
+    stringstream ss;
+    REP(i, SZ(vec)) {
+        if (i != 0)
+            ss << splitter;
+        ss << vec[i];
+    }
+    return ss.str();
+}
+
+template <typename T>
+ostream &operator<<(ostream &os, vector<T> &vec) {
+    os << join(vec, " ");
     return os;
 }
-template <class Head, class... Tail>
-void co(Head &&head, Tail &&...tail) {
-    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
-    else std::cout << head << ' ', co(std::forward<Tail>(tail)...);
-}
-template <class Head, class... Tail>
-void ce(Head &&head, Tail &&...tail) {
-    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
-    else std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
-}
-void Yes(bool is_correct = true) { std::cout << (is_correct ? "Yes\n" : "No\n"); }
-void No(bool is_not_correct = true) { Yes(!is_not_correct); }
-void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n"); }
-void NO(bool is_not_correct = true) { YES(!is_not_correct); }
-void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
-void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
-template <class T, class U = T>
-struct count_sum_structure {
-    count_sum_structure(const std::vector<U> &v) : cps(v), ft_cnt(cps.size()), ft_sum(cps.size()) {}
-    void add(U val) {
-        int k = cps.get(val);
-        ft_cnt.add(k, 1);
-        ft_sum.add(k, val);
+
+#ifdef LOCAL
+#include "cpp-dump/cpp-dump.hpp"
+CPP_DUMP_DEFINE_EXPORT_OBJECT_GENERIC(dump())
+#define dump(...) cpp_dump(__VA_ARGS__)
+namespace cp = cpp_dump;
+#else
+#define dump(...)
+#define preprocess(...)
+#define CPP_DUMP_SET_OPTION(...)
+#define CPP_DUMP_DEFINE_EXPORT_OBJECT(...)
+#define CPP_DUMP_DEFINE_EXPORT_ENUM(...)
+#define CPP_DUMP_DEFINE_DANGEROUS_EXPORT_OBJECT(...)
+#endif
+template <typename T, int MAX_LOG = 32>
+struct BinaryTrie {
+    struct Node {
+        array<int, 2> next;  // 次の頂点番号
+        int common;          // この頂点を通る文字列の数
+        T lazy;
+        Node() : next{-1, -1}, common(), lazy() {}
+    };
+
+    vector<Node> nodes;
+    BinaryTrie() {
+        nodes.push_back(Node());
     }
-    void erase(U val) {
-        int k = cps.get(val);
-        ft_cnt.add(k, -1);
-        ft_sum.add(k, -val);
+
+    void apply_xor(T val) {
+        nodes[0].lazy ^= val;
     }
-    int count_lower(U val) {
-        int k = cps.get(val);
-        return ft_cnt.sum(k, cps.size());
-    }
-    T sum_lower(U val) {
-        int k = cps.get(val);
-        return ft_sum.sum(k, cps.size());
-    }
-    int count_all() {
-        return ft_cnt.all_sum();
-    }
-    T sum_all() {
-        return ft_sum.all_sum();
-    }
+
   private:
-    coordinate_compression<U> cps;
-    fenwick_tree<int> ft_cnt;
-    fenwick_tree<T> ft_sum;
+    void push(int cur, int b) {
+        if ((nodes[cur].lazy >> (T)b) & (T)1) {
+            swap(nodes[cur].next[0], nodes[cur].next[1]);
+        }
+        REP(i, 2) {
+            if (nodes[cur].next[i] != -1) {
+                nodes[nodes[cur].next[i]].lazy ^= nodes[cur].lazy;
+            }
+        }
+        nodes[cur].lazy = 0;
+    }
+
+  public:
+    void add(T val, int cur = 0, int b = MAX_LOG - 1) {
+        nodes[cur].common++;
+        if (b < 0) {
+            return;
+        }
+        push(cur, b);
+        int nxt = (val >> (T)b) & (T)1;
+        if (nodes[cur].next[nxt] == -1) {
+            nodes[cur].next[nxt] = SZ(nodes);
+            nodes.push_back(Node());
+        }
+        add(val, nodes[cur].next[nxt], b - 1);
+    }
+    void erase(T val, int cur = 0, int b = MAX_LOG - 1) {
+        assert(cur != -1);
+        nodes[cur].common--;
+        if (b < 0) {
+            return;
+        }
+        push(cur, b);
+        int nxt = (val >> (T)b) & (T)1;
+        erase(val, nodes[cur].next[nxt], b - 1);
+    }
+    T min_element(T bxor = 0, int cur = 0, int b = MAX_LOG - 1) {
+        if (b < 0)
+            return 0;
+        push(cur, b);
+        int nxt = (bxor >> (T)b) & (T)1;
+        int ind = nodes[cur].next[nxt];
+        if (ind == -1 || nodes[ind].common == 0) {
+            nxt = nxt ^ 1;
+        }
+        return min_element(bxor, nodes[cur].next[nxt], b - 1) | ((T)nxt << (T)b);
+    }
+    T max_element(T bxor = 0) {
+        return min_element(~bxor);
+    }
+    int lower_bound_rank(T val, int cur = 0, int b = MAX_LOG - 1) {
+        if (cur == -1 || b < 0)
+            return 0;
+        push(cur, b);
+        int nxt = (val >> (T)b) & (T)1;
+        int ret = lower_bound_rank(val, nodes[cur].next[nxt], b - 1);
+        if (nxt == 1 && nodes[cur].next[0] != -1) {
+            ret += nodes[nodes[cur].next[0]].common;
+        }
+        return ret;
+    }
+
+    int upper_bound_rank(T val) {
+        return lower_bound_rank(val + 1);
+    }
+
+    T kth_smallest(int k, int cur = 0, int b = MAX_LOG - 1) {
+        if (b < 0)
+            return 0;
+        push(cur, b);
+        int lower_ind = nodes[cur].next[0];
+        int lower_cnt = 0;
+        if (lower_ind != -1) {
+            lower_cnt = nodes[lower_ind].common;
+        }
+        if (k < lower_cnt) {
+            return kth_smallest(k, nodes[cur].next[0], b - 1);
+        } else {
+            return kth_smallest(k - lower_cnt, nodes[cur].next[1], b - 1) | ((T)1 << (T)b);
+        }
+    }
+    T kth_largest(int k) {
+        return kth_smallest(size() - 1 - k);
+    }
+
+    T operator[](int k) {
+        return kth_smallest(k);
+    }
+
+    int count(T val) {
+        int cur = 0;
+        REPR(b, MAX_LOG) {
+            push(cur, b);
+            cur = nodes[cur].next[(val >> (T)b) & (T)1];
+            if (cur == -1)
+                return 0;
+        }
+        return nodes[cur].common;
+    }
+    size_t size() const {
+        return nodes[0].common;
+    }
+    bool empty() const {
+        return nodes[0].common == 0;
+    }
 };
-int main(void) {
-    int n, m;
-    ll k;
-    cin >> n >> m >> k;
-    if (n == m) {
-        vector<int> a(n);
-        co(a);
+struct BitVector {
+  private:
+    vector<int> vec;
+    int len;
+
+  public:
+    BitVector() {}
+    BitVector(const vector<int> &v) {
+        len = SZ(v);
+        vec.resize(len + 1, 0);
+        REP(i, len) {
+            vec[i + 1] += vec[i];
+            vec[i + 1] += v[i];
+        }
+    }
+    int get(const unsigned int i) {
+        return vec[i + 1] - vec[i];
+    }
+
+    unsigned int rank1(const unsigned int i) const {
+        return vec[i];
+    }
+    unsigned int rank1(const unsigned int i, const unsigned int j) const {
+        return rank1(j) - rank1(i);
+    }
+    unsigned int rank0(const unsigned int i) const {
+        return i - rank1(i);
+    }
+    unsigned int rank0(const unsigned int i, const unsigned int j) const {
+        return rank0(j) - rank0(i);
+    }
+
+    unsigned int rank(const unsigned int b, const unsigned int i) const {
+        if (b == 0)
+            return rank0(i);
+        else
+            return rank1(i);
+    }
+
+    unsigned int select(const unsigned int b, const unsigned int k) const {
+        if (rank(b, len) >= k)
+            return -1;
+        int ok = 0;
+        int ng = len;
+        while (abs(ng - ok) > 1) {
+            int mid = (ng + ok) / 2;
+            if (rank(b, mid) <= k)
+                ok = mid;
+            else
+                ng = mid;
+        }
+        return ok;
+    }
+};
+template <typename T>
+struct WaveletMatrix {
+  private:
+    vector<BitVector> B;    // ビットベクトル
+    vector<vector<T>> acc;  // 各行での累積和
+    vi start_one;           // ソート結果の1の開始地点
+    map<T, int> start_num;  // 最終結果の各数字の開始地点
+    int len, bit_len;
+    T base = 0;
+
+  public:
+    WaveletMatrix(vector<T> vec, bool use_acc = true) {
+        for (auto e : vec) chmax(base, -e);
+        for (auto &&e : vec) e += base;
+        ll max_el = vec.empty() ? 1 : *max_element(ALL(vec)) + 1;
+        bit_len = (max_el == 1) ? 1 : (64 - __builtin_clzll(max_el - 1));
+        len = SZ(vec);
+        if (use_acc)
+            acc = vector(bit_len, vector<T>(len + 1));
+        start_one = vi(bit_len);
+        vector<T> v(vec);
+        REP(b, bit_len) {
+            vector<T> cur;
+            vi bi(len);
+            REP(i, len) {
+                ll bit = (v[i] >> T(bit_len - b - 1)) & 1;
+                if (bit == 0) {
+                    cur.push_back(v[i]);
+                    bi[i] = 0;
+                }
+            }
+            start_one[b] = SZ(cur);
+            REP(i, len) {
+                ll bit = (v[i] >> T(bit_len - b - 1)) & 1;
+                if (bit == 1) {
+                    cur.push_back(v[i]);
+                    bi[i] = 1;
+                }
+            }
+            B.push_back(BitVector(bi));
+            if (use_acc) {
+                REP(i, len) {
+                    if (B[b].get(i) == 0)
+                        acc[b][i + 1] = v[i];
+                    acc[b][i + 1] += acc[b][i];
+                }
+            }
+            v = cur;
+        }
+
+        REPR(i, len) {
+            start_num[v[i]] = i;
+        }
+    }
+
+    T access(int i) {
+        assert(i < len);
+
+        T ret = 0;
+        REP(j, bit_len) {
+            int b = B[j].get(i);
+            ret <<= 1;
+            ret |= b;
+            i = B[j].rank(b, i);
+            if (b == 1) {
+                i += start_one[j];
+            }
+        }
+        return ret - base;
+    }
+
+    int rank(T c, int k) {
+        c += base;
+        assert(k <= len);
+        assert(k >= 0);
+        if (start_num.find(c) == start_num.end())
+            return 0;
+        REP(i, bit_len) {
+            ll bit = (c >> T(bit_len - i - 1)) & 1;
+            k = B[i].rank(bit, k);
+            if (bit == 1) {
+                k += start_one[i];
+            }
+        }
+        return k - start_num[c];
+    }
+
+    T kthMin(int left, int right, int k) {
+        assert(right - left > k);
+        assert(left < right);
+        ll res = 0;
+        REP(i, bit_len) {
+            ll left_rank = B[i].rank(0, left);
+            ll right_rank = B[i].rank(0, right);
+            ll zero_in_range = right_rank - left_rank;
+            ll bit = (k < zero_in_range) ? 0 : 1;
+            if (bit == 1) {
+                k -= zero_in_range;
+                left += start_one[i] - left_rank;
+                right += start_one[i] - right_rank;
+            } else {
+                left = left_rank;
+                right = right_rank;
+            }
+            res <<= 1;
+            res |= bit;
+        }
+        return res - base;
+    }
+
+    T kthMax(int left, int right, int k) {
+        assert(right - left > k);
+        assert(left < right);
+        int len = right - left;
+        int nk = len - k - 1;
+        return kthMin(left, right, nk);
+    }
+
+    T kMinSum(int left, int right, int k) {
+        int original_k = k;
+        assert(right - left >= k);
+        if (k == 0)
+            return 0;
+        assert(left < right);
+        ll kth = 0;
+        ll ret = 0;
+        REP(i, bit_len) {
+            ll left_rank = B[i].rank(0, left);
+            ll right_rank = B[i].rank(0, right);
+            ll zero_in_range = right_rank - left_rank;
+            ll bit = (k < zero_in_range) ? 0 : 1;
+            if (bit == 1) {
+                ret += acc[i][right] - acc[i][left];
+                k -= zero_in_range;
+                left += start_one[i] - left_rank;
+                right += start_one[i] - right_rank;
+            } else {
+                left = left_rank;
+                right = right_rank;
+            }
+            kth <<= 1;
+            kth |= bit;
+        }
+        ret += kth * k;
+        return ret - base * original_k;
+    }
+    T kMaxSum(int left, int right, int k) {
+        assert(right - left >= k);
+        if (k == 0)
+            return 0;
+        assert(left < right);
+        return kMinSum(left, right, right - left) - kMinSum(left, right, right - left - k);
+    }
+    int lessCount(int left, int right, T upper) {
+        upper += base;
+        assert(left <= right);
+        ll ret = 0;
+        if (left == right) {
+            return 0;
+        }
+        if (upper >= T(T(1) << T(bit_len))) {
+            return right - left;
+        }
+        REP(i, bit_len) {
+            ll left_rank = B[i].rank(0, left);
+            ll right_rank = B[i].rank(0, right);
+            ll zero_in_range = right_rank - left_rank;
+            ll bit = (upper >> T(bit_len - i - 1)) & 1;
+            if (bit == 1) {
+                ret += zero_in_range;
+                left += start_one[i] - left_rank;
+                right += start_one[i] - right_rank;
+            } else {
+                left = left_rank;
+                right = right_rank;
+            }
+        }
+        return ret;
+    }
+    int lessEqualCount(int left, int right, T upper) {
+        assert(left <= right);
+        return lessCount(left, right, upper) + rangeFreq(left, right, upper);
+    }
+    int greaterCount(int left, int right, T lower) {
+        assert(left <= right);
+        return right - left - lessEqualCount(left, right, lower);
+    }
+    int greaterEqualCount(int left, int right, T lower) {
+        assert(left <= right);
+        return right - left - lessCount(left, right, lower);
+    }
+    T greaterEqualKthMin(int left, int right, T lower, int k) {
+        assert(left < right);
+        int cnt = lessCount(left, right, lower);
+        return kthMin(left, right, k + cnt);
+    }
+    T greaterKthMin(int left, int right, T lower, int k) {
+        assert(left < right);
+        int cnt = lessEqualCount(left, right, lower);
+        return kthMin(left, right, k + cnt);
+    }
+    T lessKthMax(int left, int right, T upper, int k) {
+        assert(left < right);
+        int cnt = lessCount(left, right, upper);
+        return kthMin(left, right, cnt - k - 1);
+    }
+    T lessEqualKthMax(int left, int right, T upper, int k) {
+        assert(left < right);
+        int cnt = lessEqualCount(left, right, upper);
+        return kthMin(left, right, cnt - k - 1);
+    }
+    T lessKMaxSum(int left, int right, T upper, int k) {
+        assert(left < right);
+        int cnt = greaterEqualCount(left, right, upper);
+        return kMaxSum(left, right, cnt + k) - kMaxSum(left, right, cnt);
+    }
+    T lessEqualKMaxSum(int left, int right, T upper, int k) {
+        assert(left < right);
+        int cnt = greaterCount(left, right, upper);
+        return kMaxSum(left, right, cnt + k) - kMaxSum(left, right, cnt);
+    }
+    T greaterKMinSum(int left, int right, T lower, int k) {
+        assert(left < right);
+        int cnt = lessEqualCount(left, right, lower);
+        return kMinSum(left, right, cnt + k) - kMinSum(left, right, cnt);
+    }
+    T greaterEqualKMinSum(int left, int right, T lower, int k) {
+        assert(left < right);
+        int cnt = lessCount(left, right, lower);
+        return kMinSum(left, right, cnt + k) - kMinSum(left, right, cnt);
+    }
+    int valueRangeCount(int left, int right, T lower, T upper) {
+        assert(left <= right);
+        return lessCount(left, right, upper) - lessCount(left, right, lower);
+    }
+    T valueRangeSum(int left, int right, T lower, T upper) {
+        assert(left <= right);
+        int less = lessCount(left, right, lower);
+        int greater = greaterEqualCount(left, right, upper);
+        return kMaxSum(left, right, right - left) - kMaxSum(left, right, greater) -
+               kMinSum(left, right, less);
+    }
+    int rangeFreq(int l, int r, T v) {
+        assert(0 <= l && l <= r && r <= len);
+        return rank(v, r) - rank(v, l);
+    }
+};
+
+int main() {
+    cin.tie(nullptr);
+    ios::sync_with_stdio(false);
+    int N, M;
+    ll K;
+    cin >> N >> M >> K;
+    vll A(N);
+    cin >> A;
+    if (N == M) {
+        vi ans(N);
+        cout << ans << endl;
         return 0;
     }
-    vector<ll> a(n);
-    cin >> a;
-    auto b = a;
-    sort(all(b));
-    reverse(all(b));
-    count_sum_structure<ll> cs(a);
-    rep (i, m) {
-        cs.add(b[i]);
+    ll rest = K;
+    BinaryTrie<ll, 42> trie;
+    REP(i, N) {
+        rest -= A[i];
+        trie.add(A[i]);
     }
-    ll r = k - accumulate(all(a), 0l);
-    vector<ll> ans(n);
-    rep (i, n) {
-        if (a[i] >= b[m - 1]) {
-            cs.erase(a[i]);
-            cs.add(b[m]);
+    WaveletMatrix<ll> wm(A);
+    ll mth = wm.kthMax(0, N, M - 1);
+    vll S(N);
+    REP(i, N) {
+        S[i] = wm.kMaxSum(0, N, i + 1);
+    }
+    ll sub = wm.kthMax(0, N, M);
+    map<ll, ll> mm;
+    vll ans(N);
+    REP(i, N) {
+        if (mm.contains(A[i])) {
+            ans[i] = mm[A[i]];
+            continue;
         }
-        auto f = [&](ll x) {
-            if (r < x)
-                return true;
-            int y = m - cs.count_lower(a[i] + x + 1);
-            return __int128_t(a[i] + x + 1) * y - (cs.sum_all() - cs.sum_lower(a[i] + x + 1)) >
-                   r - x;
+        ll ok = rest + 100;
+        ll ng = -1;
+        auto isOk = [&](ll X) -> bool {
+            ll border = A[i] + X;
+            if (border < mth)
+                return false;
+            int rank = N - trie.upper_bound_rank(border);
+            if (rank > M)
+                return false;
+            ll sum = S[M - 1];
+            if (rank > 0) {
+                sum -= S[rank - 1];
+            }
+            if (A[i] >= mth) {
+                sum -= A[i];
+                sum += sub;
+            }
+            dump(i, X, sum);
+            ll R = rest - X;
+            return R < (border + 1) * (M - rank) - sum;
         };
-        ans[i] = meguru_binary_search(r + 1, -1l, f);
-        if (a[i] >= b[m - 1]) {
-            cs.add(a[i]);
-            cs.erase(b[m]);
+        while (ok - ng > 1) {
+            ll mid = (ok + ng) / 2;
+            if (isOk(mid))
+                ok = mid;
+            else
+                ng = mid;
         }
-    }
-    rep (i, n) {
-        if (ans[i] > r)
+        ans[i] = ok;
+        if (ok > rest)
             ans[i] = -1;
+        mm[A[i]] = ans[i];
     }
-    co(ans);
+    cout << ans << endl;
     return 0;
 }

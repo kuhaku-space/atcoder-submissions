@@ -98,12 +98,12 @@ int main(void) {
         repr (i, m - 1) chmin(memo[i], memo[i + 1]);
         vector ndp(m, vector(k + 1, INF));
         rep (i, m) {
+            if (u[i] < t[idx]) continue;
             int p = lower_bound(all(u), u[i] + x) - u.begin();
-            if (u[i] >= t[idx] && p < m)
+            if (p < m)
                 chmin(ndp[i][1], memo[p] + u[i] - t[idx]);
-            rep (j, k + 1) {
-                if (u[i] >= t[idx] && j >= 1)
-                    chmin(ndp[i][j], dp[i][j - 1] + u[i] - t[idx]);
+            rep (j, k) {
+                chmin(ndp[i][j + 1], dp[i][j] + u[i] - t[idx]);
             }
         }
         dp = ndp;

@@ -1,46 +1,35 @@
-#line 1 "a.cpp"
-#define PROBLEM ""
-#line 2 "/home/kuhaku/atcoder/github/atcoder-lib/lib/template/template.hpp"
-#include <bits/stdc++.h>
-using namespace std;
-template <class T, class U>
-bool chmax(T &a, const U &b) {
-    return a < b ? a = b, true : false;
-}
-template <class T, class U>
-bool chmin(T &a, const U &b) {
-    return b < a ? a = b, true : false;
-}
-constexpr int64_t INF = 1000000000000000003;
-constexpr int Inf = 1000000003;
-constexpr int MOD = 1000000007;
-constexpr int MOD_N = 998244353;
-constexpr double EPS = 1e-7;
-const double PI = acos(-1.0);
-#line 2 "/home/kuhaku/atcoder/github/atcoder-lib/lib/graph/max_flow.hpp"
-
+// competitive-verifier: PROBLEM
+#include <algorithm>
+#include <cassert>
+#include <limits>
+#include <queue>
+#include <vector>
+/**
+ * @brief 最大流
+ *
+ * @tparam Cap
+ */
 template <class Cap>
 struct mf_graph {
-   public:
     mf_graph() : _n(0) {}
-    mf_graph(int n) : _n(n), g(n) {}
-
+    explicit mf_graph(int n) : _n(n), g(n) {}
     int add_edge(int from, int to, Cap cap) {
         assert(0 <= from && from < _n);
         assert(0 <= to && to < _n);
         assert(0 <= cap);
         int m = int(pos.size());
-        pos.push_back({from, int(g[from].size())});
-        g[from].push_back(_edge{to, int(g[to].size()), cap});
-        g[to].push_back(_edge{from, int(g[from].size()) - 1, 0});
+        pos.emplace_back(from, int(g[from].size()));
+        int from_id = int(g[from].size());
+        int to_id = int(g[to].size());
+        if (from == to) ++to_id;
+        g[from].emplace_back(to, to_id, cap);
+        g[to].emplace_back(from, from_id, 0);
         return m;
     }
-
     struct edge {
         int from, to;
         Cap cap, flow;
     };
-
     edge get_edge(int i) {
         int m = int(pos.size());
         assert(0 <= i && i < m);
@@ -48,37 +37,32 @@ struct mf_graph {
         auto _re = g[_e.to][_e.rev];
         return edge{pos[i].first, _e.to, _e.cap + _re.cap, _re.cap};
     }
-    vector<edge> edges() {
+    std::vector<edge> edges() {
         int m = int(pos.size());
-        vector<edge> result;
-        for (int i = 0; i < m; i++) {
-            result.push_back(get_edge(i));
-        }
+        std::vector<edge> result;
+        for (int i = 0; i < m; ++i) result.emplace_back(get_edge(i));
         return result;
     }
     void change_edge(int i, Cap new_cap, Cap new_flow) {
         int m = int(pos.size());
         assert(0 <= i && i < m);
         assert(0 <= new_flow && new_flow <= new_cap);
-        auto& _e = g[pos[i].first][pos[i].second];
-        auto& _re = g[_e.to][_e.rev];
+        auto &_e = g[pos[i].first][pos[i].second];
+        auto &_re = g[_e.to][_e.rev];
         _e.cap = new_cap - new_flow;
         _re.cap = new_flow;
     }
-
-    Cap flow(int s, int t) { return flow(s, t, numeric_limits<Cap>::max()); }
+    Cap flow(int s, int t) { return flow(s, t, std::numeric_limits<Cap>::max()); }
     Cap flow(int s, int t, Cap flow_limit) {
         assert(0 <= s && s < _n);
         assert(0 <= t && t < _n);
-
-        vector<int> level(_n), iter(_n);
-        queue<int> que;
-
+        assert(s != t);
+        std::vector<int> level(_n), iter(_n);
         auto bfs = [&]() {
-            fill(level.begin(), level.end(), -1);
+            std::fill(level.begin(), level.end(), -1);
             level[s] = 0;
-            while (!que.empty()) que.pop();
-            que.push(s);
+            std::queue<int> que;
+            que.emplace(s);
             while (!que.empty()) {
                 int v = que.front();
                 que.pop();
@@ -86,7 +70,7 @@ struct mf_graph {
                     if (e.cap == 0 || level[e.to] >= 0) continue;
                     level[e.to] = level[v] + 1;
                     if (e.to == t) return;
-                    que.push(e.to);
+                    que.emplace(e.to);
                 }
             }
         };
@@ -94,37 +78,34 @@ struct mf_graph {
             if (v == s) return up;
             Cap res = 0;
             int level_v = level[v];
-            for (int& i = iter[v]; i < int(g[v].size()); i++) {
-                _edge& e = g[v][i];
+            for (int &i = iter[v]; i < int(g[v].size()); ++i) {
+                _edge &e = g[v][i];
                 if (level_v <= level[e.to] || g[e.to][e.rev].cap == 0) continue;
-                Cap d = self(self, e.to, min(up - res, g[e.to][e.rev].cap));
+                Cap d = self(self, e.to, std::min(up - res, g[e.to][e.rev].cap));
                 if (d <= 0) continue;
                 g[v][i].cap += d;
                 g[e.to][e.rev].cap -= d;
                 res += d;
-                if (res == up) break;
+                if (res == up) return res;
             }
+            level[v] = _n;
             return res;
         };
-
         Cap flow = 0;
         while (flow < flow_limit) {
             bfs();
             if (level[t] == -1) break;
-            fill(iter.begin(), iter.end(), 0);
-            while (flow < flow_limit) {
-                Cap f = dfs(dfs, t, flow_limit - flow);
-                if (!f) break;
-                flow += f;
-            }
+            std::fill(iter.begin(), iter.end(), 0);
+            Cap f = dfs(dfs, t, flow_limit - flow);
+            if (!f) break;
+            flow += f;
         }
         return flow;
     }
-
-    vector<bool> min_cut(int s) {
-        vector<bool> visited(_n);
-        queue<int> que;
-        que.push(s);
+    std::vector<bool> min_cut(int s) {
+        std::vector<bool> visited(_n);
+        std::queue<int> que;
+        que.emplace(s);
         while (!que.empty()) {
             int p = que.front();
             que.pop();
@@ -132,110 +113,169 @@ struct mf_graph {
             for (auto e : g[p]) {
                 if (e.cap && !visited[e.to]) {
                     visited[e.to] = true;
-                    que.push(e.to);
+                    que.emplace(e.to);
                 }
             }
         }
         return visited;
     }
-
-   private:
+  private:
     int _n;
     struct _edge {
         int to, rev;
         Cap cap;
+        constexpr _edge(int _to, int _rev, Cap _cap) : to(_to), rev(_rev), cap(_cap) {}
     };
-    vector<pair<int, int>> pos;
-    vector<vector<_edge>> g;
+    std::vector<std::pair<int, int>> pos;
+    std::vector<std::vector<_edge>> g;
 };
-#line 2 "/home/kuhaku/atcoder/github/atcoder-lib/lib/template/atcoder.hpp"
-#pragma GCC target("avx")
-#pragma GCC optimize("O3")
-#pragma GCC optimize("unroll-loops")
-#line 6 "/home/kuhaku/atcoder/github/atcoder-lib/lib/template/atcoder.hpp"
-using ll = int64_t;
-using ld = long double;
-#define FOR(i, m, n) for(int i = (m); i < (n); ++i)
-#define FORR(i, m, n) for(int i = (m)-1; i >= (n); --i)
-#define FORL(i, m, n) for(ll i = (m); i < (n); ++i)
-#define rep(i, n) FOR(i, 0, n)
-#define repn(i, n) FOR(i, 1, n+1)
-#define repr(i, n) FORR(i, n, 0)
-#define repnr(i, n) FORR(i, n+1, 1)
+#include <cstdint>
+#include <utility>
+namespace internal {
+template <int Idx>
+struct grid_impl {
+    template <class Head, class... Tail>
+    constexpr grid_impl(Head &&head, Tail &&...tail)
+        : limit(head), impl(std::forward<Tail>(tail)...) {}
+    template <class Head, class... Tail>
+    constexpr bool in_field(Head x, Tail &&...tail) const {
+        return 0 <= x && x < limit && impl.in_field(std::forward<Tail>(tail)...);
+    }
+    template <class Head, class... Tail>
+    constexpr std::int64_t flatten(Head x, Tail &&...tail) const {
+        return x + limit * impl.flatten(std::forward<Tail>(tail)...);
+    }
+  private:
+    std::int64_t limit;
+    grid_impl<Idx - 1> impl;
+};
+template <>
+struct grid_impl<0> {
+    constexpr grid_impl() {}
+    constexpr bool in_field() const { return true; }
+    constexpr std::int64_t flatten() const { return 0; }
+};
+}  // namespace internal
+template <int Idx>
+struct Grid {
+    template <class... Args, std::enable_if_t<(sizeof...(Args) == Idx)> * = nullptr>
+    constexpr Grid(Args &&...args) : entity(std::forward<Args>(args)...) {}
+    template <class... Args, std::enable_if_t<(sizeof...(Args) == Idx)> * = nullptr>
+    constexpr bool in_field(Args &&...args) const {
+        return entity.in_field(std::forward<Args>(args)...);
+    }
+    template <class... Args, std::enable_if_t<(sizeof...(Args) == Idx)> * = nullptr>
+    constexpr std::int64_t flatten(Args &&...args) const {
+        return entity.flatten(std::forward<Args>(args)...);
+    }
+  private:
+    internal::grid_impl<Idx> entity;
+};
+#ifdef ATCODER
+#pragma GCC target("sse4.2,avx512f,avx512dq,avx512ifma,avx512cd,avx512bw,avx512vl,bmi2")
+#endif
+#pragma GCC optimize("Ofast,fast-math,unroll-all-loops")
+#include <bits/stdc++.h>
+#ifndef ATCODER
+#pragma GCC target("sse4.2,avx2,bmi2")
+#endif
+template <class T, class U>
+constexpr bool chmax(T &a, const U &b) {
+    return a < (T)b ? a = (T)b, true : false;
+}
+template <class T, class U>
+constexpr bool chmin(T &a, const U &b) {
+    return (T)b < a ? a = (T)b, true : false;
+}
+constexpr std::int64_t INF = 1000000000000000003;
+constexpr int Inf = 1000000003;
+constexpr double EPS = 1e-7;
+constexpr double PI = 3.14159265358979323846;
+#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
+#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
+#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
+#define rep(i, n) FOR (i, 0, n)
+#define repn(i, n) FOR (i, 1, n + 1)
+#define repr(i, n) FORR (i, n, 0)
+#define repnr(i, n) FORR (i, n + 1, 1)
 #define all(s) (s).begin(), (s).end()
-template<class T, class U>
-istream &operator>>(istream &is, pair<T, U> &p) { is >> p.first >> p.second; return is; }
+struct Sonic {
+    Sonic() {
+        std::ios::sync_with_stdio(false);
+        std::cin.tie(nullptr);
+        std::cout << std::fixed << std::setprecision(20);
+    }
+    constexpr void operator()() const {}
+} sonic;
+using namespace std;
+using ll = std::int64_t;
+using ld = long double;
+template <class T, class U>
+std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
+    return is >> p.first >> p.second;
+}
 template <class T>
-istream &operator>>(istream &is, vector<T> &v) { for (T &i : v) is>>i; return is; }
+std::istream &operator>>(std::istream &is, std::vector<T> &v) {
+    for (T &i : v) is >> i;
+    return is;
+}
+template <class T, class U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
+    return os << '(' << p.first << ',' << p.second << ')';
+}
 template <class T>
-ostream &operator<<(ostream &os, const vector<T> &v) {
-    for (auto it=v.begin(); it!=v.end(); ++it) { os<<(it==v.begin()?"":" ")<<*it; } return os;
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+    for (auto it = v.begin(); it != v.end(); ++it) os << (it == v.begin() ? "" : " ") << *it;
+    return os;
 }
 template <class Head, class... Tail>
-void co(Head&& head, Tail&&... tail) {
-    if constexpr(sizeof...(tail)==0) cout<<head<<'\n'; else cout<<head<<' ',co(forward<Tail>(tail)...);
+void co(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
+    else std::cout << head << ' ', co(std::forward<Tail>(tail)...);
 }
 template <class Head, class... Tail>
-void ce(Head&& head, Tail&&... tail) {
-    if constexpr(sizeof...(tail)==0) cerr<<head<<'\n'; else cerr<<head<<' ',ce(forward<Tail>(tail)...);
+void ce(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
+    else std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
 }
-template<typename T, typename... Args>
-auto make_vector(T x, int arg, Args ...args) {
-    if constexpr(sizeof...(args)==0) return vector<T>(arg, x); else return vector(arg,make_vector<T>(x, args...));
-}
-void sonic() { ios::sync_with_stdio(false); cin.tie(nullptr); }
-void setp(const int n) { cout << fixed << setprecision(n); }
-#line 4 "a.cpp"
-
+void Yes(bool is_correct = true) { std::cout << (is_correct ? "Yes\n" : "No\n"); }
+void No(bool is_not_correct = true) { Yes(!is_not_correct); }
+void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n"); }
+void NO(bool is_not_correct = true) { YES(!is_not_correct); }
+void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
+void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
 int main(void) {
-    sonic();
     int h, w;
     cin >> h >> w;
-    vector<string> s(h);
-    cin >> s;
-    int sx, sy, tx, ty;
-    rep(i, h) {
-        rep(j, w) {
-            if (s[i][j] == 'S') {
-                sx = i, sy = j;
-            } else if (s[i][j] == 'T') {
-                tx = i, ty = j;
+    vector<string> b(h);
+    cin >> b;
+    Grid<2> grid(h, w);
+    mf_graph<int> mf(2 * h * w + h + w + 2);
+    int s = 2 * h * w + h + w, t = s + 1;
+    rep (i, h) {
+        rep (j, w) {
+            if (b[i][j] != '.') {
+                mf.add_edge(2 * h * w + i, grid.flatten(i, j), Inf);
+                mf.add_edge(2 * h * w + h + j, grid.flatten(i, j), Inf);
+                mf.add_edge(h * w + grid.flatten(i, j), 2 * h * w + i, Inf);
+                mf.add_edge(h * w + grid.flatten(i, j), 2 * h * w + h + j, Inf);
+            }
+            if (b[i][j] == 'o') {
+                mf.add_edge(grid.flatten(i, j), h * w + grid.flatten(i, j), 1);
+            }
+            if (b[i][j] == 'S') {
+                mf.add_edge(s, grid.flatten(i, j), Inf);
+                mf.add_edge(grid.flatten(i, j), h * w + grid.flatten(i, j), Inf);
+            }
+            if (b[i][j] == 'T') {
+                mf.add_edge(h * w + grid.flatten(i, j), t, Inf);
+                mf.add_edge(grid.flatten(i, j), h * w + grid.flatten(i, j), Inf);
             }
         }
     }
-
-    if (sx == tx || sy == ty) {
-        co(-1);
-        return 0;
-    }
-
-    mf_graph<int> mf(h * w * 2 + 2);
-    int st = h * w * 2, gl = st + 1;
-    mf.add_edge(st, sx * w + sy, Inf);
-    mf.add_edge(h * w + tx * w + ty, gl, Inf);
-    rep(i, h * w) mf.add_edge(h * w + i, i, 1);
-    rep(i, h) {
-        rep(j, w) {
-            FOR(k, j + 1, w) {
-                if (s[i][j] != '.' && s[i][k] != '.') {
-                    mf.add_edge(i * w + j, h * w + i * w + k, 1);
-                    mf.add_edge(i * w + k, h * w + i * w + j, 1);
-                }
-            }
-        }
-    }
-    rep(i, w) {
-        rep(j, h) {
-            FOR(k, j + 1, h) {
-                if (s[j][i] != '.' && s[k][i] != '.') {
-                    mf.add_edge(j * w + i, h * w + k * w + i, 1);
-                    mf.add_edge(k * w + i, h * w + j * w + i, 1);
-                }
-            }
-        }
-    }
-
-    co(mf.flow(st, gl));
-
+    int ans = mf.flow(s, t);
+    if (ans >= Inf)
+        ans = -1;
+    co(ans);
     return 0;
 }

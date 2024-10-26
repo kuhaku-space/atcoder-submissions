@@ -355,27 +355,41 @@ void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
 int main(void) {
     int n, m;
     cin >> n >> m;
-    vector<int> c(n), a(m);
-    cin >> c >> a;
-    vector l(m, vector(n, 0));
-    cin >> l;
-    mf_graph<ll> mf(n * 5 + m + 2);
-    Grid<2> grid(n, 5);
+    vector a(n, vector(m, 0));
+    cin >> a;
+    Grid<2> grid(n, m);
+    mf_graph<ll> mf(n + m + 2);
     int s = mf.size() - 2, t = mf.size() - 1;
+    ll ans = 0;
     rep (i, n) {
-        rep (j, 4) {
-            mf.add_edge(s, grid.flatten(i, j + 1), c[i]);
+        ll x = 0;
+        rep (j, m) {
+            x += a[i][j];
         }
-        rep (j, 4) {
-            mf.add_edge(grid.flatten(i, j), grid.flatten(i, j + 1), INF);
+        if (x >= 0)
+            mf.add_edge(i, t, x), ans += x;
+        else
+            mf.add_edge(s, i, -x);
+    }
+    rep (j, m) {
+        ll x = 0;
+        rep (i, n) {
+            x += a[i][j];
+        }
+        if (x >= 0)
+            mf.add_edge(s, n + j, x), ans += x;
+        else
+            mf.add_edge(n + j, t, -x);
+    }
+    rep (i, n) {
+        rep (j, m) {
+            if (a[i][j] >= 0) {
+                mf.add_edge(n + j, i, a[i][j]);
+            } else {
+                mf.add_edge(n + j, i, INF);
+            }
         }
     }
-    rep (i, m) {
-        mf.add_edge(n * 5 + i, t, a[i]);
-        rep (j, n) {
-            mf.add_edge(grid.flatten(j, l[i][j] - 1), n * 5 + i, INF);
-        }
-    }
-    co(accumulate(all(a), 0ll) - mf.flow(s, t));
+    co(ans - mf.flow(s, t));
     return 0;
 }

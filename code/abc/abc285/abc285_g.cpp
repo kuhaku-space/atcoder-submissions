@@ -1,27 +1,61 @@
-#line 1 "a.cpp"
-#define PROBLEM ""
-#line 2 "/home/kuhaku/home/github/algo/lib/template/template.hpp"
-#pragma GCC target("sse4.2,avx2,bmi2")
-#pragma GCC optimize("O3")
-#pragma GCC optimize("unroll-loops")
-#include <bits/stdc++.h>
-using namespace std;
-template <class T, class U>
-bool chmax(T &a, const U &b) {
-    return a < (T)b ? a = (T)b, true : false;
-}
-template <class T, class U>
-bool chmin(T &a, const U &b) {
-    return (T)b < a ? a = (T)b, true : false;
-}
-constexpr int64_t INF = 1000000000000000003;
-constexpr int Inf = 1000000003;
-constexpr int MOD = 1000000007;
-constexpr int MOD_N = 998244353;
-constexpr double EPS = 1e-7;
-constexpr double PI = M_PI;
-#line 2 "/home/kuhaku/home/github/algo/lib/flow/max_flow.hpp"
-
+// competitive-verifier: PROBLEM
+#include <cassert>
+#include <utility>
+#include <vector>
+/**
+ * @brief Hopcroft-Karp algorithm
+ * @see https://judge.yosupo.jp/submission/99577
+ */
+struct hopcroft_karp {
+    hopcroft_karp(int _n, int _m) : n(_n), m(_m), g(_n), match_left(_n, -1), match_right(_m, -1) {}
+    void add_edge(int u, int v) {
+        assert(0 <= u && u < n);
+        assert(0 <= v && v < m);
+        g[u].emplace_back(v);
+    }
+    int matching() {
+        int flow = 0;
+        std::vector<int> root(n), prev(n), qq(n);
+        for (bool updated = true; updated;) {
+            updated = false;
+            int qi = 0, qj = 0;
+            std::fill(root.begin(), root.end(), -1);
+            std::fill(prev.begin(), prev.end(), -1);
+            for (int i = 0; i < n; i++) {
+                if (match_left[i] == -1) qq[qj++] = i, root[i] = i, prev[i] = i;
+            }
+            while (qi < qj) {
+                int u = qq[qi++];
+                if (match_left[root[u]] != -1) continue;
+                for (int v : g[u]) {
+                    if (match_right[v] == -1) {
+                        while (v != -1)
+                            match_right[v] = u, std::swap(match_left[u], v), u = prev[u];
+                        updated = true, flow++;
+                        break;
+                    }
+                    if (prev[match_right[v]] == -1)
+                        v = match_right[v], prev[v] = u, root[v] = root[u], qq[qj++] = v;
+                }
+            }
+        }
+        return flow;
+    }
+    std::vector<std::pair<int, int>> get_pairs() const {
+        std::vector<std::pair<int, int>> res;
+        for (int i = 0; i < n; i++) {
+            if (~match_left[i]) res.emplace_back(i, match_left[i]);
+        }
+        return res;
+    }
+  private:
+    const int n, m;
+    std::vector<std::vector<int>> g;
+    std::vector<int> match_left, match_right;
+};
+#include <algorithm>
+#include <limits>
+#include <queue>
 /**
  * @brief 最大流
  *
@@ -31,7 +65,7 @@ template <class Cap>
 struct mf_graph {
     mf_graph() : _n(0) {}
     explicit mf_graph(int n) : _n(n), g(n) {}
-
+    int size() const { return _n; }
     int add_edge(int from, int to, Cap cap) {
         assert(0 <= from && from < _n);
         assert(0 <= to && to < _n);
@@ -45,12 +79,10 @@ struct mf_graph {
         g[to].emplace_back(from, from_id, 0);
         return m;
     }
-
     struct edge {
         int from, to;
         Cap cap, flow;
     };
-
     edge get_edge(int i) {
         int m = int(pos.size());
         assert(0 <= i && i < m);
@@ -61,9 +93,7 @@ struct mf_graph {
     std::vector<edge> edges() {
         int m = int(pos.size());
         std::vector<edge> result;
-        for (int i = 0; i < m; ++i) {
-            result.emplace_back(get_edge(i));
-        }
+        for (int i = 0; i < m; ++i) result.emplace_back(get_edge(i));
         return result;
     }
     void change_edge(int i, Cap new_cap, Cap new_flow) {
@@ -75,13 +105,11 @@ struct mf_graph {
         _e.cap = new_cap - new_flow;
         _re.cap = new_flow;
     }
-
     Cap flow(int s, int t) { return flow(s, t, std::numeric_limits<Cap>::max()); }
     Cap flow(int s, int t, Cap flow_limit) {
         assert(0 <= s && s < _n);
         assert(0 <= t && t < _n);
         assert(s != t);
-
         std::vector<int> level(_n), iter(_n);
         auto bfs = [&]() {
             std::fill(level.begin(), level.end(), -1);
@@ -116,7 +144,6 @@ struct mf_graph {
             level[v] = _n;
             return res;
         };
-
         Cap flow = 0;
         while (flow < flow_limit) {
             bfs();
@@ -128,7 +155,6 @@ struct mf_graph {
         }
         return flow;
     }
-
     std::vector<bool> min_cut(int s) {
         std::vector<bool> visited(_n);
         std::queue<int> que;
@@ -146,19 +172,77 @@ struct mf_graph {
         }
         return visited;
     }
-
   private:
     int _n;
     struct _edge {
         int to, rev;
         Cap cap;
-
         constexpr _edge(int _to, int _rev, Cap _cap) : to(_to), rev(_rev), cap(_cap) {}
     };
     std::vector<std::pair<int, int>> pos;
     std::vector<std::vector<_edge>> g;
 };
-#line 3 "/home/kuhaku/home/github/algo/lib/template/macro.hpp"
+#include <cstdint>
+namespace internal {
+template <int Idx>
+struct grid_impl {
+    template <class Head, class... Tail>
+    constexpr grid_impl(Head &&head, Tail &&...tail)
+        : limit(head), impl(std::forward<Tail>(tail)...) {}
+    template <class Head, class... Tail>
+    constexpr bool in_field(Head x, Tail &&...tail) const {
+        return 0 <= x && x < limit && impl.in_field(std::forward<Tail>(tail)...);
+    }
+    template <class Head, class... Tail>
+    constexpr std::int64_t flatten(Head x, Tail &&...tail) const {
+        return x + limit * impl.flatten(std::forward<Tail>(tail)...);
+    }
+  private:
+    std::int64_t limit;
+    grid_impl<Idx - 1> impl;
+};
+template <>
+struct grid_impl<0> {
+    constexpr grid_impl() {}
+    constexpr bool in_field() const { return true; }
+    constexpr std::int64_t flatten() const { return 0; }
+};
+}  // namespace internal
+template <int Idx>
+struct Grid {
+    template <class... Args, std::enable_if_t<(sizeof...(Args) == Idx)> * = nullptr>
+    constexpr Grid(Args &&...args) : entity(std::forward<Args>(args)...) {}
+    template <class... Args, std::enable_if_t<(sizeof...(Args) == Idx)> * = nullptr>
+    constexpr bool in_field(Args &&...args) const {
+        return entity.in_field(std::forward<Args>(args)...);
+    }
+    template <class... Args, std::enable_if_t<(sizeof...(Args) == Idx)> * = nullptr>
+    constexpr std::int64_t flatten(Args &&...args) const {
+        return entity.flatten(std::forward<Args>(args)...);
+    }
+  private:
+    internal::grid_impl<Idx> entity;
+};
+#ifdef ATCODER
+#pragma GCC target("sse4.2,avx512f,avx512dq,avx512ifma,avx512cd,avx512bw,avx512vl,bmi2")
+#endif
+#pragma GCC optimize("Ofast,fast-math,unroll-all-loops")
+#include <bits/stdc++.h>
+#ifndef ATCODER
+#pragma GCC target("sse4.2,avx2,bmi2")
+#endif
+template <class T, class U>
+constexpr bool chmax(T &a, const U &b) {
+    return a < (T)b ? a = (T)b, true : false;
+}
+template <class T, class U>
+constexpr bool chmin(T &a, const U &b) {
+    return (T)b < a ? a = (T)b, true : false;
+}
+constexpr std::int64_t INF = 1000000000000000003;
+constexpr int Inf = 1000000003;
+constexpr double EPS = 1e-7;
+constexpr double PI = 3.14159265358979323846;
 #define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
 #define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
 #define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
@@ -167,17 +251,16 @@ struct mf_graph {
 #define repr(i, n) FORR (i, n, 0)
 #define repnr(i, n) FORR (i, n + 1, 1)
 #define all(s) (s).begin(), (s).end()
-#line 3 "/home/kuhaku/home/github/algo/lib/template/sonic.hpp"
 struct Sonic {
     Sonic() {
         std::ios::sync_with_stdio(false);
         std::cin.tie(nullptr);
+        std::cout << std::fixed << std::setprecision(20);
     }
-
     constexpr void operator()() const {}
 } sonic;
-#line 5 "/home/kuhaku/home/github/algo/lib/template/atcoder.hpp"
-using ll = int64_t;
+using namespace std;
+using ll = std::int64_t;
 using ld = long double;
 template <class T, class U>
 std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
@@ -194,9 +277,7 @@ std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
 }
 template <class T>
 std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
-    for (auto it = v.begin(); it != v.end(); ++it) {
-        os << (it == v.begin() ? "" : " ") << *it;
-    }
+    for (auto it = v.begin(); it != v.end(); ++it) os << (it == v.begin() ? "" : " ") << *it;
     return os;
 }
 template <class Head, class... Tail>
@@ -209,76 +290,34 @@ void ce(Head &&head, Tail &&...tail) {
     if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
     else std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
 }
-template <typename T, typename... Args>
-auto make_vector(T x, int arg, Args... args) {
-    if constexpr (sizeof...(args) == 0) return std::vector<T>(arg, x);
-    else return std::vector(arg, make_vector<T>(x, args...));
-}
-void setp(int n) {
-    std::cout << std::fixed << std::setprecision(n);
-}
-void Yes(bool is_correct = true) {
-    std::cout << (is_correct ? "Yes" : "No") << '\n';
-}
-void No(bool is_not_correct = true) {
-    Yes(!is_not_correct);
-}
-void YES(bool is_correct = true) {
-    std::cout << (is_correct ? "YES" : "NO") << '\n';
-}
-void NO(bool is_not_correct = true) {
-    YES(!is_not_correct);
-}
-void Takahashi(bool is_correct = true) {
-    std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n';
-}
-void Aoki(bool is_not_correct = true) {
-    Takahashi(!is_not_correct);
-}
-#line 4 "a.cpp"
-
+void Yes(bool is_correct = true) { std::cout << (is_correct ? "Yes\n" : "No\n"); }
+void No(bool is_not_correct = true) { Yes(!is_not_correct); }
+void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n"); }
+void NO(bool is_not_correct = true) { YES(!is_not_correct); }
+void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
+void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
 int main(void) {
-    int h, w;
-    cin >> h >> w;
-    vector<string> ss(h);
-    cin >> ss;
-
-    int sz = h * w;
-    mf_graph<int> mf(sz * 2 + 2);
-    int s = sz * 2, t = s + 1;
-
-    auto in_board = [&](int x, int y) {
-        return 0 <= x && x < h && 0 <= y && y < w;
-    };
-    auto to_line = [&](int x, int y) {
-        return x * w + y;
-    };
-
-    vector<int> dx = {1, -1, 0, 0};
-    vector<int> dy = {0, 0, 1, -1};
-    rep (i, h) {
-        rep (j, w) {
-            mf.add_edge(s, to_line(i, j), 1);
-            mf.add_edge(sz + to_line(i, j), t, 1);
-            if (ss[i][j] != '2') {
-                int x = to_line(i, j);
-                mf.add_edge(x, sz + x, 1);
-            }
-            if (ss[i][j] != '1') {
-                int x = to_line(i, j);
+    int n, m;
+    cin >> n >> m;
+    vector<string> b(n);
+    cin >> b;
+    Grid<2> g(n, m);
+    hopcroft_karp mf(n * m, n * m);
+    vector<int> dx = {1, -1, 0, 0}, dy = {0, 0, 1, -1};
+    rep (i, n) {
+        rep (j, m) {
+            if (b[i][j] != '1') {
                 rep (k, 4) {
-                    if (!in_board(i + dx[k], j + dy[k]))
-                        continue;
-                    if (ss[i + dx[k]][j + dy[k]] == '1')
-                        continue;
-                    int y = to_line(i + dx[k], j + dy[k]);
-                    mf.add_edge(x, sz + y, 1);
+                    int nx = i + dx[k], ny = j + dy[k];
+                    if (g.in_field(nx, ny) && b[nx][ny] != '1')
+                        mf.add_edge(g.flatten(i, j), g.flatten(nx, ny));
                 }
+            }
+            if (b[i][j] != '2') {
+                mf.add_edge(g.flatten(i, j), g.flatten(i, j));
             }
         }
     }
-
-    Yes(mf.flow(s, t) == sz);
-
+    Yes(mf.matching() == n * m);
     return 0;
 }

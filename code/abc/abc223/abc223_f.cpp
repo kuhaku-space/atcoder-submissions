@@ -1,219 +1,386 @@
-#line 1 "a.cpp"
-#define PROBLEM ""
-#line 2 "/home/kuhaku/kuhaku/github/atcoder-lib/lib/template/template.hpp"
-#include <bits/stdc++.h>
-using namespace std;
-template <class T, class U>
-bool chmax(T &a, const U &b) {
-    return a < b ? a = b, true : false;
+// competitive-verifier: PROBLEM
+#include <cassert>
+#include <vector>
+namespace internal {
+// @return same with std::bit::bit_ceil
+unsigned int bit_ceil(unsigned int n) {
+    unsigned int x = 1;
+    while (x < (unsigned int)(n)) x *= 2;
+    return x;
 }
-template <class T, class U>
-bool chmin(T &a, const U &b) {
-    return b < a ? a = b, true : false;
+// @param n `1 <= n`
+// @return same with std::bit::countl_zero
+int countl_zero(unsigned int n) { return __builtin_clz(n); }
+// @param n `1 <= n`
+// @return same with std::bit::countr_zero
+int countr_zero(unsigned int n) { return __builtin_ctz(n); }
+// @param n `1 <= n`
+// @return same with std::bit::countr_zero
+constexpr int countr_zero_constexpr(unsigned int n) {
+    int x = 0;
+    while (!(n & (1 << x))) x++;
+    return x;
 }
-constexpr int64_t INF = 1000000000000000003;
-constexpr int Inf = 1000000003;
-constexpr int MOD = 1000000007;
-constexpr int MOD_N = 998244353;
-constexpr double EPS = 1e-7;
-const double PI = acos(-1.0);
-#line 2 "/home/kuhaku/kuhaku/github/atcoder-lib/lib/binary_tree/segment_tree_virtual.hpp"
-
+}  // namespace internal
+#include <algorithm>
+#include <limits>
+#include <numeric>
+#include <utility>
+template <class T>
+struct Add {
+    using value_type = T;
+    static constexpr T id() { return T(); }
+    static constexpr T op(const T &lhs, const T &rhs) { return lhs + rhs; }
+    template <class U>
+    static constexpr U f(T lhs, U rhs) {
+        return lhs + rhs;
+    }
+};
+template <class T>
+struct Mul {
+    using value_type = T;
+    static constexpr T id() { return T(1); }
+    static constexpr T op(const T &lhs, const T &rhs) { return lhs * rhs; }
+    template <class U>
+    static constexpr U f(T lhs, U rhs) {
+        return lhs * rhs;
+    }
+};
+template <class T>
+struct And {
+    using value_type = T;
+    static constexpr T id() { return std::numeric_limits<T>::max(); }
+    static constexpr T op(const T &lhs, const T &rhs) { return lhs & rhs; }
+    template <class U>
+    static constexpr U f(T lhs, U rhs) {
+        return lhs & rhs;
+    }
+};
+template <class T>
+struct Or {
+    using value_type = T;
+    static constexpr T id() { return T(); }
+    static constexpr T op(const T &lhs, const T &rhs) { return lhs | rhs; }
+    template <class U>
+    static constexpr U f(T lhs, U rhs) {
+        return lhs | rhs;
+    }
+};
+template <class T>
+struct Xor {
+    using value_type = T;
+    static constexpr T id() { return T(); }
+    static constexpr T op(const T &lhs, const T &rhs) { return lhs ^ rhs; }
+    template <class U>
+    static constexpr U f(T lhs, U rhs) {
+        return lhs ^ rhs;
+    }
+};
+template <class T>
+struct Min {
+    using value_type = T;
+    static constexpr T id() { return std::numeric_limits<T>::max(); }
+    static constexpr T op(const T &lhs, const T &rhs) { return std::min(lhs, rhs); }
+    template <class U>
+    static constexpr U f(T lhs, U rhs) {
+        return std::min((U)lhs, rhs);
+    }
+};
+template <class T>
+struct Max {
+    using value_type = T;
+    static constexpr T id() { return std::numeric_limits<T>::lowest(); }
+    static constexpr T op(const T &lhs, const T &rhs) { return std::max(lhs, rhs); }
+    template <class U>
+    static constexpr U f(T lhs, U rhs) {
+        return std::max((U)lhs, rhs);
+    }
+};
+template <class T>
+struct Gcd {
+    using value_type = T;
+    static constexpr T id() { return std::numeric_limits<T>::max(); }
+    static constexpr T op(const T &lhs, const T &rhs) {
+        return lhs == Gcd::id() ? rhs : (rhs == Gcd::id() ? lhs : std::gcd(lhs, rhs));
+    }
+};
+template <class T>
+struct Lcm {
+    using value_type = T;
+    static constexpr T id() { return std::numeric_limits<T>::max(); }
+    static constexpr T op(const T &lhs, const T &rhs) {
+        return lhs == Lcm::id() ? rhs : (rhs == Lcm::id() ? lhs : std::lcm(lhs, rhs));
+    }
+};
+template <class T>
+struct Update {
+    using value_type = T;
+    static constexpr T id() { return std::numeric_limits<T>::max(); }
+    static constexpr T op(const T &lhs, const T &rhs) { return lhs == Update::id() ? rhs : lhs; }
+    template <class U>
+    static constexpr U f(T lhs, U rhs) {
+        return lhs == Update::id() ? rhs : lhs;
+    }
+};
+template <class T>
+struct Affine {
+    using P = std::pair<T, T>;
+    using value_type = P;
+    static constexpr P id() { return P(1, 0); }
+    static constexpr P op(P lhs, P rhs) {
+        return {lhs.first * rhs.first, lhs.first * rhs.second + lhs.second};
+    }
+};
+template <class M>
+struct Rev {
+    using T = typename M::value_type;
+    using value_type = T;
+    static constexpr T id() { return M::id(); }
+    static constexpr T op(T lhs, T rhs) { return M::op(rhs, lhs); }
+};
 /**
  * @brief セグメント木
+ * @see https://noshi91.hatenablog.com/entry/2020/04/22/212649
  *
- * @tparam T 要素の型
- * @tparam F 関数の型
+ * @tparam M モノイド
  */
-template <class T>
+template <class M>
 struct segment_tree {
-    int N;
-    const T e;
-    vector<T> data;
-
-    segment_tree() {}
-    segment_tree(int _n, T _e) : e(_e) { this->init(_n, _e); }
-
-    const T &operator[](int i) const { return this->data[i + this->N]; }
-    T at(int k) const { return this->operator[](k); }
-    T get(int k) const { return this->operator[](k); }
-
-    void init(int n, const T val) {
-        for (this->N = 1; this->N < n; this->N <<= 1) {}
-        this->data.assign(this->N << 1, val);
-    }
-
+  private:
+    using T = typename M::value_type;
+    struct _segment_tree_reference {
+      private:
+        segment_tree<M> &self;
+        int k;
+      public:
+        _segment_tree_reference(segment_tree<M> &self, int k) : self(self), k(k) {}
+        _segment_tree_reference &operator=(const T &x) {
+            self.set(k, x);
+            return *this;
+        }
+        _segment_tree_reference &operator=(T &&x) {
+            self.set(k, std::move(x));
+            return *this;
+        }
+        operator T() const { return self.get(k); }
+    };
+  public:
+    segment_tree() : segment_tree(0) {}
+    explicit segment_tree(int n, T e = M::id()) : segment_tree(std::vector<T>(n, e)) {}
     template <class U>
-    void build(const vector<U> &v) {
-        for (int i = 0, n = v.size(); i < n; ++i) this->data[this->N + i] = T(v[i]);
-        for (int i = this->N - 1; i >= 1; --i)
-            this->data[i] = this->op(this->data[i * 2], this->data[i * 2 + 1]);
+    explicit segment_tree(const std::vector<U> &v) : _n(v.size()) {
+        _size = internal::bit_ceil(_n);
+        _log = internal::countr_zero(_size);
+        data = std::vector<T>(_size << 1, M::id());
+        for (int i = 0; i < _n; ++i) data[_size + i] = T(v[i]);
+        for (int i = _size - 1; i >= 1; --i) update(i);
     }
-
-    void apply(int k, T val) {
-        assert(0 <= k && k < this->N);
-        k += this->N;
-        this->data[k] = f(val, this->data[k]);
-        while ((k >>= 1) >= 1) this->data[k] = this->op(this->data[k * 2], this->data[k * 2 + 1]);
+    const T &operator[](int k) const { return data[k + _size]; }
+    _segment_tree_reference operator[](int k) { return _segment_tree_reference(*this, k); }
+    T at(int k) const { return data[k + _size]; }
+    T get(int k) const { return data[k + _size]; }
+    void set(int k, T val) {
+        assert(0 <= k && k < _n);
+        k += _size;
+        data[k] = val;
+        for (int i = 1; i <= _log; ++i) update(k >> i);
     }
-
-    T all_prod() const { return this->data[1]; }
+    void reset(int k) { set(k, M::id()); }
+    T all_prod() const { return data[1]; }
     T prod(int a, int b) const {
-        assert(0 <= a && a <= this->N);
-        assert(0 <= b && b <= this->N);
-        T l = e, r = e;
-        for (a += this->N, b += this->N; a < b; a >>= 1, b >>= 1) {
-            if (a & 1) l = this->op(l, this->data[a++]);
-            if (b & 1) r = this->op(this->data[--b], r);
+        assert(0 <= a && b <= _n);
+        T l = M::id(), r = M::id();
+        for (a += _size, b += _size; a < b; a >>= 1, b >>= 1) {
+            if (a & 1) l = M::op(l, data[a++]);
+            if (b & 1) r = M::op(data[--b], r);
         }
-        return this->op(l, r);
+        return M::op(l, r);
     }
-
-  protected:
-    virtual T op(T a, T b) const = 0;
-    virtual T f(T val, T x) = 0;
+    template <class F>
+    int max_right(F f) const {
+        return max_right(0, f);
+    }
+    template <class F>
+    int max_right(int l, F f) const {
+        assert(0 <= l && l <= _n);
+        assert(f(M::id()));
+        if (l == _n) return _n;
+        l += _size;
+        T sm = M::id();
+        do {
+            while (l % 2 == 0) l >>= 1;
+            if (!f(M::op(sm, data[l]))) {
+                while (l < _size) {
+                    l = (2 * l);
+                    if (f(M::op(sm, data[l]))) {
+                        sm = M::op(sm, data[l]);
+                        l++;
+                    }
+                }
+                return l - _size;
+            }
+            sm = M::op(sm, data[l]);
+            l++;
+        } while ((l & -l) != l);
+        return _n;
+    }
+    template <class F>
+    int min_left(F f) const {
+        return min_left(_n, f);
+    }
+    template <class F>
+    int min_left(int r, F f) const {
+        assert(0 <= r && r <= _n);
+        assert(f(M::id()));
+        if (r == 0) return 0;
+        r += _size;
+        T sm = M::id();
+        do {
+            r--;
+            while (r > 1 && (r % 2)) r >>= 1;
+            if (!f(M::op(data[r], sm))) {
+                while (r < _size) {
+                    r = (2 * r + 1);
+                    if (f(M::op(data[r], sm))) {
+                        sm = M::op(data[r], sm);
+                        r--;
+                    }
+                }
+                return r + 1 - _size;
+            }
+            sm = M::op(data[r], sm);
+        } while ((r & -r) != r);
+        return 0;
+    }
+  private:
+    int _n, _size, _log;
+    std::vector<T> data;
+    void update(int k) { data[k] = M::op(data[2 * k], data[2 * k + 1]); }
 };
-#line 3 "/home/kuhaku/kuhaku/github/atcoder-lib/lib/binary_tree/RSQ.hpp"
-
-template <class T>
-struct RSMQ {
-    struct segment_tree_max : segment_tree<pair<T, T>> {
-        segment_tree_max(int _n, pair<T, T> _e) : segment_tree<pair<T, T>>(_n, _e) {}
-        pair<T, T> op(pair<T, T> a, pair<T, T> b) const {
-            return make_pair(max(a.first, a.second + b.first), a.second + b.second);
-        }
-        pair<T, T> f(pair<T, T> val, pair<T, T> x) {
-            T y = val.second + x.second;
-            return make_pair(y, y);
-        }
-    };
-
-    segment_tree_max st;
-
-    RSMQ(int _n, T _e) : st(_n + 1, make_pair(_e, T(0))) {}
-
-    void apply(int k, T val) { this->apply(k, k + 1, val); }
-    void apply(int a, int b, T val) {
-        this->st.add(a, make_pair(val, val));
-        this->st.add(b, make_pair(-val, -val));
-    }
-    void add(int k, T val) { this->apply(k, k + 1, val); }
-    void add(int a, int b, T val) { this->apply(a, b, val); }
-
-    T prod(int a, int b) { return this->st.prod(0, a).second + this->st.prod(a, b).first; }
-
-    T at(int k) { return this->st.prod(0, k).second; }
-    T get(int k) { return this->at(k); }
-};
-
-template <class T>
-struct RSmQ {
-    struct segment_tree_min : segment_tree<pair<T, T>> {
-        segment_tree_min(int _n, pair<T, T> _e) : segment_tree<pair<T, T>>(_n, _e) {}
-        pair<T, T> op(pair<T, T> a, pair<T, T> b) const {
-            return make_pair(min(a.first, a.second + b.first), a.second + b.second);
-        }
-        pair<T, T> f(pair<T, T> val, pair<T, T> x) {
-            T y = val.second + x.second;
-            return make_pair(y, y);
-        }
-    };
-    segment_tree_min st;
-
-    RSmQ(int _n, T _e) : st(_n + 1, make_pair(_e, T(0))) {
-        this->st.init(_n + 1, make_pair(T(0), T(0)));
-    }
-
-    void apply(int k, T val) { this->apply(k, k + 1, val); }
-    void apply(int a, int b, T val) {
-        this->st.apply(a, make_pair(val, val));
-        this->st.apply(b, make_pair(-val, -val));
-    }
-    void add(int k, T val) { this->apply(k, k + 1, val); }
-    void add(int a, int b, T val) { this->apply(a, b, val); }
-
-    T prod(int a, int b) { return this->st.prod(0, a).second + this->st.prod(a, b).first; }
-
-    T at(int k) { return this->st.prod(0, k + 1).second; }
-    T get(int k) { return this->at(k); }
-};
-#line 2 "/home/kuhaku/kuhaku/github/atcoder-lib/lib/template/atcoder.hpp"
-#pragma GCC target("avx")
-#pragma GCC optimize("O3")
-#pragma GCC optimize("unroll-loops")
-#line 6 "/home/kuhaku/kuhaku/github/atcoder-lib/lib/template/atcoder.hpp"
-using ll = int64_t;
-using ld = long double;
-#define FOR(i, m, n) for(int i = (m); i < (n); ++i)
-#define FORR(i, m, n) for(int i = (m)-1; i >= (n); --i)
-#define FORL(i, m, n) for(ll i = (m); i < (n); ++i)
-#define rep(i, n) FOR(i, 0, n)
-#define repn(i, n) FOR(i, 1, n+1)
-#define repr(i, n) FORR(i, n, 0)
-#define repnr(i, n) FORR(i, n+1, 1)
+#ifdef ATCODER
+#pragma GCC target("sse4.2,avx512f,avx512dq,avx512ifma,avx512cd,avx512bw,avx512vl,bmi2")
+#endif
+#pragma GCC optimize("Ofast,fast-math,unroll-all-loops")
+#include <bits/stdc++.h>
+#ifndef ATCODER
+#pragma GCC target("sse4.2,avx2,bmi2")
+#endif
+template <class T, class U>
+constexpr bool chmax(T &a, const U &b) {
+    return a < (T)b ? a = (T)b, true : false;
+}
+template <class T, class U>
+constexpr bool chmin(T &a, const U &b) {
+    return (T)b < a ? a = (T)b, true : false;
+}
+constexpr std::int64_t INF = 1000000000000000003;
+constexpr int Inf = 1000000003;
+constexpr double EPS = 1e-7;
+constexpr double PI = 3.14159265358979323846;
+#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
+#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
+#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
+#define rep(i, n) FOR (i, 0, n)
+#define repn(i, n) FOR (i, 1, n + 1)
+#define repr(i, n) FORR (i, n, 0)
+#define repnr(i, n) FORR (i, n + 1, 1)
 #define all(s) (s).begin(), (s).end()
-template<class T, class U>
-istream &operator>>(istream &is, pair<T, U> &p) { is >> p.first >> p.second; return is; }
-template <class T>
-istream &operator>>(istream &is, vector<T> &v) { for (T &i : v) is>>i; return is; }
-template <class T>
-ostream &operator<<(ostream &os, const vector<T> &v) {
-    for (auto it=v.begin(); it!=v.end(); ++it) { os<<(it==v.begin()?"":" ")<<*it; } return os;
-}
-template <class Head, class... Tail>
-void co(Head&& head, Tail&&... tail) {
-    if constexpr(sizeof...(tail)==0) cout<<head<<'\n'; else cout<<head<<' ',co(forward<Tail>(tail)...);
-}
-template <class Head, class... Tail>
-void ce(Head&& head, Tail&&... tail) {
-    if constexpr(sizeof...(tail)==0) cerr<<head<<'\n'; else cerr<<head<<' ',ce(forward<Tail>(tail)...);
-}
-template<typename T, typename... Args>
-auto make_vector(T x, int arg, Args ...args) {
-    if constexpr(sizeof...(args)==0) return vector<T>(arg, x); else return vector(arg,make_vector<T>(x, args...));
-}
-void sonic() { ios::sync_with_stdio(false); cin.tie(nullptr); }
-void setp(const int n) { cout << fixed << setprecision(n); }
-#line 4 "a.cpp"
-
-int main(void) {
-    sonic();
-    int n, q;
-    cin >> n >> q;
-    RSmQ<ll> st(n, Inf);
-    string s;
-    cin >> s;
-    rep(i, n) {
-        if (s[i] == '(') {
-            st.add(i, n, 1);
-        } else {
-            st.add(i, n, -1);
-        }
+struct Sonic {
+    Sonic() {
+        std::ios::sync_with_stdio(false);
+        std::cin.tie(nullptr);
+        std::cout << std::fixed << std::setprecision(20);
     }
-
-    rep(i, q) {
-        int type;
-        cin >> type;
-        if (type == 1) {
-            int l, r;
-            cin >> l >> r;
-            --l, --r;
-            if (s[l] == '(' && s[r] == ')')
-                st.add(l, r, -2);
-            else if (s[l] == ')' && s[r] == '(')
-                st.add(l, r, 2);
-            swap(s[l], s[r]);
-        } else {
-            int l, r;
-            cin >> l >> r;
-            --l, --r;
-            int x = st.at(l - 1);
-            if (x == st.at(r) && x <= st.prod(l, r))
-                co("Yes");
+    constexpr void operator()() const {}
+} sonic;
+using namespace std;
+using ll = std::int64_t;
+using ld = long double;
+template <class T, class U>
+std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
+    return is >> p.first >> p.second;
+}
+template <class T>
+std::istream &operator>>(std::istream &is, std::vector<T> &v) {
+    for (T &i : v) is >> i;
+    return is;
+}
+template <class T, class U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
+    return os << '(' << p.first << ',' << p.second << ')';
+}
+template <class T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+    for (auto it = v.begin(); it != v.end(); ++it) os << (it == v.begin() ? "" : " ") << *it;
+    return os;
+}
+template <class Head, class... Tail>
+void co(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
+    else std::cout << head << ' ', co(std::forward<Tail>(tail)...);
+}
+template <class Head, class... Tail>
+void ce(Head &&head, Tail &&...tail) {
+    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
+    else std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
+}
+void Yes(bool is_correct = true) { std::cout << (is_correct ? "Yes\n" : "No\n"); }
+void No(bool is_not_correct = true) { Yes(!is_not_correct); }
+void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n"); }
+void NO(bool is_not_correct = true) { YES(!is_not_correct); }
+void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
+void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
+namespace internal {
+struct SumAndMin {
+    using value_type = std::pair<int, int>;
+    static constexpr std::pair<int, int> id() {
+        return std::make_pair(0, 0);
+    }
+    static constexpr std::pair<int, int> op(const std::pair<int, int> &lhs,
+                                            const std::pair<int, int> &rhs) {
+        return std::make_pair(lhs.first + rhs.first, std::min(lhs.second, lhs.first + rhs.second));
+    }
+};
+}  // namespace internal
+struct parenthesis_sequences {
+    parenthesis_sequences(const std::string &s) : n(s.size()) {
+        std::vector<std::pair<int, int>> v(n);
+        for (int i = 0; i < n; ++i) {
+            if (s[i] == '(')
+                v[i] = std::make_pair(1, 1);
             else
-                co("No");
+                v[i] = std::make_pair(-1, -1);
+        }
+        seg = segment_tree<internal::SumAndMin>(v);
+    }
+    bool is_correct(int l, int r) const {
+        assert(0 <= l && l <= r && r <= n);
+        return (r - l) % 2 == 0 && seg.prod(l, r) == std::make_pair(0, 0);
+    }
+    void swap(int x, int y) {
+        assert(0 <= x && x < n && 0 <= y && y < n);
+        auto vx = seg.get(x), vy = seg.get(y);
+        seg.set(x, vy);
+        seg.set(y, vx);
+    }
+  private:
+    int n;
+    segment_tree<internal::SumAndMin> seg;
+};
+int main(void) {
+    int n, q;
+    string s;
+    cin >> n >> q >> s;
+    parenthesis_sequences ps(s);
+    while (q--) {
+        int t, l, r;
+        cin >> t >> l >> r;
+        --l, --r;
+        if (t == 1) {
+            ps.swap(l, r);
+        } else {
+            Yes(ps.is_correct(l, r + 1));
         }
     }
-
     return 0;
 }

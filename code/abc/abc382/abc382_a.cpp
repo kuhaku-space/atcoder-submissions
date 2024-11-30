@@ -1,79 +1,4 @@
 // competitive-verifier: PROBLEM
-#include <cassert>
-#include <functional>
-#include <queue>
-#include <vector>
-#include <utility>
-/**
- * @brief 削除可能優先度付きキュー
- *
- * @tparam T
- */
-template <class T, class Comp = std::less<>>
-struct erasable_priority_queue {
-    bool empty() const { return a.empty(); }
-    int size() const { return a.size() - b.size(); }
-    T top() const { return a.top(); }
-    void insert(const T &x) { a.push(x); }
-    void insert(T &&x) { a.push(std::move(x)); }
-    void push(const T &x) { a.push(x); }
-    void push(T &&x) { a.push(std::move(x)); }
-    template <typename... Args>
-    void emplace(Args &&...args) {
-        a.emplace(std::forward<Args>(args)...);
-    }
-    void pop() { erase(a.top()); }
-    void erase(T x) {
-        b.emplace(x);
-        while (!b.empty() && a.top() == b.top()) { a.pop(), b.pop(); }
-    }
-  private:
-    std::priority_queue<T, std::vector<T>, Comp> a, b;
-};
-template <typename T, class Comp, class RComp>
-struct priority_k_sum {
-    priority_k_sum(int k) : k(k), sum() { assert(k >= 0); }
-    T query() const { return sum; }
-    void insert(T x) {
-        sum += x;
-        in.emplace(x);
-        modify();
-    }
-    void erase(T x) {
-        assert(size());
-        if (!in.empty() && !Comp()(in.top(), x)) sum -= x, in.erase(x);
-        else out.erase(x);
-        modify();
-    }
-    void set_k(int x) {
-        assert(x >= 0);
-        k = x;
-        modify();
-    }
-    int get_k() const { return k; }
-    int size() const { return in.size() + out.size(); }
-  private:
-    int k;
-    T sum;
-    erasable_priority_queue<T, Comp> in;
-    erasable_priority_queue<T, RComp> out;
-    void modify() {
-        while (in.size() < k && !out.empty()) {
-            auto p = out.top();
-            out.pop();
-            sum += p, in.emplace(p);
-        }
-        while (in.size() > k) {
-            auto p = in.top();
-            in.pop();
-            sum -= p, out.emplace(p);
-        }
-    }
-};
-template <typename T>
-using maximum_sum = priority_k_sum<T, std::greater<T>, std::less<T>>;
-template <typename T>
-using minimum_sum = priority_k_sum<T, std::less<T>, std::greater<T>>;
 #ifdef ATCODER
 #pragma GCC target("sse4.2,avx512f,avx512dq,avx512ifma,avx512cd,avx512bw,avx512vl,bmi2")
 #endif
@@ -148,34 +73,15 @@ void NO(bool is_not_correct = true) { YES(!is_not_correct); }
 void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
 void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
 int main(void) {
-    int n, m;
-    cin >> n >> m;
-    array<vector<ll>, 3> v = {};
+    int n, k;
+    cin >> n >> k;
+    string s;
+    cin >> s;
+    int c = 0;
     rep (i, n) {
-        int t, x;
-        cin >> t >> x;
-        v[t].emplace_back(x);
+        if (s[i] == '.')
+            ++c;
     }
-    auto [a, b, c] = v;
-    maximum_sum<ll> ms(m);
-    for (auto x : a) ms.insert(x);
-    ll ans = ms.query();
-    sort(all(c));
-    reverse(all(c));
-    priority_queue<ll> pq;
-    for (auto x : b) pq.emplace(x);
-    for (auto x : c) {
-        rep (i, x) {
-            if (pq.empty())
-                break;
-            ms.insert(pq.top());
-            pq.pop();
-        }
-        ms.set_k(--m);
-        if (m == 0)
-            break;
-        chmax(ans, ms.query());
-    }
-    co(ans);
+    co(min(n, c + k));
     return 0;
 }

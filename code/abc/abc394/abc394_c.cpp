@@ -1,40 +1,4 @@
 // competitive-verifier: PROBLEM
-#include <array>
-#include <cassert>
-#include <vector>
-/// @brief 線形篩
-template <int N = (1 << 22)>
-struct linear_sieve {
-    linear_sieve() : lpf{}, pr() { build(); }
-    bool is_prime(int x) {
-        assert(1 <= x && x <= N);
-        return lpf[x] == x;
-    }
-    std::vector<int> prime_factorization(int x) {
-        assert(1 <= x && x <= N);
-        std::vector<int> res;
-        while (x > 1) {
-            res.emplace_back(lpf[x]);
-            x /= lpf[x];
-        }
-        return res;
-    }
-  private:
-    std::array<int, N + 1> lpf;
-    std::vector<int> pr;
-    void build() {
-        for (int i = 2; i <= N; ++i) {
-            if (lpf[i] == 0) {
-                lpf[i] = i;
-                pr.emplace_back(i);
-            }
-            for (int j = 0; i * pr[j] <= N; ++j) {
-                lpf[i * pr[j]] = pr[j];
-                if (pr[j] == lpf[i]) break;
-            }
-        }
-    }
-};
 #ifdef ATCODER
 #pragma GCC target("sse4.2,avx512f,avx512dq,avx512ifma,avx512cd,avx512bw,avx512vl,bmi2")
 #endif
@@ -108,36 +72,20 @@ void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n");
 void NO(bool is_not_correct = true) { YES(!is_not_correct); }
 void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
 void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
-linear_sieve ls;
 int main(void) {
-    int n;
-    cin >> n;
-    vector<int> a(n);
-    cin >> a;
-    unordered_set<int> st;
-    bool f = true;
+    string s;
+    cin >> s;
+    int n = s.size();
+    string ans;
     rep (i, n) {
-        auto v = ls.prime_factorization(a[i]);
-        for (auto x : v) {
-            if (st.count(x)) {
-                f = false;
-                break;
-            }
+        ans += s[i];
+        int k = i - 1;
+        while (k >= 0 && ans.substr(k, 2) == "WA") {
+            ans[k] = 'A';
+            ans[k + 1] = 'C';
+            --k;
         }
-        if (!f)
-            break;
-        for (auto x : v) st.emplace(x);
     }
-    if (f) {
-        co("pairwise coprime");
-        return 0;
-    }
-    ll g = a[0];
-    rep (i, n) g = gcd(g, a[i]);
-    if (g == 1) {
-        co("setwise coprime");
-    } else {
-        co("not coprime");
-    }
+    co(ans);
     return 0;
 }

@@ -1,6 +1,51 @@
 // competitive-verifier: PROBLEM
-#include <cassert>
+#include <algorithm>
+#include <iterator>
 #include <vector>
+/// @brief 座標圧縮
+template <class T>
+struct coordinate_compression {
+    coordinate_compression() = default;
+    coordinate_compression(const std::vector<T> &_data) : data(_data) { build(); }
+    const T &operator[](int i) const { return data[i]; }
+    void add(T x) { data.emplace_back(x); }
+    void build() {
+        std::sort(data.begin(), data.end());
+        data.erase(std::unique(data.begin(), data.end()), data.end());
+    }
+    bool exists(T x) const {
+        auto it = std::lower_bound(data.begin(), data.end(), x);
+        return it != data.end() && *it == x;
+    }
+    int get(T x) const {
+        return std::distance(data.begin(), std::lower_bound(data.begin(), data.end(), x));
+    }
+    int lower_bound(T x) const {
+        return std::distance(data.begin(), std::lower_bound(data.begin(), data.end(), x));
+    }
+    int upper_bound(T x) const {
+        return std::distance(data.begin(), std::upper_bound(data.begin(), data.end(), x));
+    }
+    std::vector<int> compress(const std::vector<T> &v) const {
+        int n = v.size();
+        std::vector<int> res(n);
+        for (int i = 0; i < n; ++i) res[i] = get(v[i]);
+        return res;
+    }
+    int size() const { return data.size(); }
+  private:
+    std::vector<T> data;
+};
+/// @brief 座標圧縮
+template <class T>
+std::vector<int> compress(const std::vector<T> &v) {
+    coordinate_compression cps(v);
+    std::vector<int> res;
+    res.reserve(std::size(v));
+    for (auto &&x : v) res.emplace_back(cps.get(x));
+    return res;
+}
+#include <cassert>
 namespace internal {
 // @return same with std::bit::bit_ceil
 unsigned int bit_ceil(unsigned int n) {
@@ -22,7 +67,6 @@ constexpr int countr_zero_constexpr(unsigned int n) {
     return x;
 }
 }  // namespace internal
-#include <algorithm>
 #include <limits>
 #include <numeric>
 #include <utility>
@@ -344,6 +388,58 @@ struct Mini {
         return std::min((U)lhs, rhs);
     }
 };
+namespace open_interval {
+template <std::integral T>
+bool is_include(T l1, T r1, T l2, T r2) {
+    return (l1 <= l2 && r2 <= r1) || (l2 <= l1 && r1 <= r2);
+}
+template <std::integral T>
+bool is_include(std::pair<T, T> p, std::pair<T, T> q) {
+    return is_include(p.first, p.second, q.first, q.second);
+}
+template <std::integral T>
+bool is_intersect(T l1, T r1, T l2, T r2) {
+    return std::max(l1, l2) < std::min(r1, r2);
+}
+template <std::integral T>
+bool is_intersect(std::pair<T, T> p, std::pair<T, T> q) {
+    return is_intersect(p.first, p.second, q.first, q.second);
+}
+template <std::integral T>
+bool is_disjoint(T l1, T r1, T l2, T r2) {
+    return std::min(r1, r2) <= std::max(l1, l2);
+}
+template <std::integral T>
+bool is_disjoint(std::pair<T, T> p, std::pair<T, T> q) {
+    return is_disjoint(p.first, p.second, q.first, q.second);
+}
+}  // namespace open_interval
+namespace closed_interval {
+template <std::integral T>
+bool is_include(T l1, T r1, T l2, T r2) {
+    return (l1 <= l2 && r2 <= r1) || (l2 <= l1 && r1 <= r2);
+}
+template <std::integral T>
+bool is_include(std::pair<T, T> p, std::pair<T, T> q) {
+    return is_include(p.first, p.second, q.first, q.second);
+}
+template <std::integral T>
+bool is_intersect(T l1, T r1, T l2, T r2) {
+    return std::max(l1, l2) <= std::min(r1, r2);
+}
+template <std::integral T>
+bool is_intersect(std::pair<T, T> p, std::pair<T, T> q) {
+    return is_intersect(p.first, p.second, q.first, q.second);
+}
+template <std::integral T>
+bool is_disjoint(T l1, T r1, T l2, T r2) {
+    return std::min(r1, r2) < std::max(l1, l2);
+}
+template <std::integral T>
+bool is_disjoint(std::pair<T, T> p, std::pair<T, T> q) {
+    return is_disjoint(p.first, p.second, q.first, q.second);
+}
+}  // namespace closed_interval
 int main(void) {
     int n;
     cin >> n;
@@ -351,20 +447,12 @@ int main(void) {
     cin >> w;
     vector<int> l(n), r(n);
     rep (i, n) cin >> l[i] >> r[i];
-    vector<int> ordl(n), ordr(n);
-    iota(all(ordl), 0);
-    ordr = ordl;
-    sort(all(ordl), [&](int x, int y) {
-        return l[x] < l[y];
-    });
-    sort(all(ordr), [&](int x, int y) {
-        return r[x] < r[y];
-    });
-    vector<int> wl(n), wr(n);
-    rep (i, n) wl[i] = w[ordl[i]];
-    rep (i, n) wr[i] = w[ordr[i]];
-    rep (i, n) ordl[i] = l[ordl[i]];
-    rep (i, n) ordr[i] = r[ordr[i]];
+    coordinate_compression cpsl(l), cpsr(r);
+    vector<int> wl(cpsl.size(), Inf), wr(cpsr.size(), Inf);
+    rep (i, n) {
+        chmin(wl[cpsl.get(l[i])], w[i]);
+        chmin(wr[cpsr.get(r[i])], w[i]);
+    }
     segment_tree<Mini<ll>> stl(wl), str(wr);
     int q;
     cin >> q;
@@ -372,16 +460,16 @@ int main(void) {
         int s, t;
         cin >> s >> t;
         --s, --t;
-        if (min(r[s], r[t]) < max(l[s], l[t])) {
+        if (closed_interval::is_disjoint(l[s], r[s], l[t], r[t])) {
             co(w[s] + w[t]);
             continue;
         }
         ll ans = INF;
-        chmin(ans, stl.prod(upper_bound(all(ordl), max(r[s], r[t])) - ordl.begin(), n));
-        chmin(ans, str.prod(0, lower_bound(all(ordr), min(l[s], l[t])) - ordr.begin()));
-        if (!(l[s] <= l[t] && r[t] <= r[s]) && !(l[t] <= l[s] && r[s] <= r[t]))
-            chmin(ans, str.prod(0, lower_bound(all(ordr), max(l[s], l[t])) - ordr.begin()) +
-                           stl.prod(upper_bound(all(ordl), min(r[s], r[t])) - ordl.begin(), n));
+        chmin(ans, stl.prod(cpsl.upper_bound(max(r[s], r[t])), cpsl.size()));
+        chmin(ans, str.prod(0, cpsr.lower_bound(min(l[s], l[t]))));
+        if (!closed_interval::is_include(l[s], r[s], l[t], r[t]))
+            chmin(ans, str.prod(0, cpsr.lower_bound(max(l[s], l[t]))) +
+                           stl.prod(cpsl.upper_bound(min(r[s], r[t])), cpsl.size()));
         if (ans < INF / 10)
             co(ans + w[s] + w[t]);
         else

@@ -1,4 +1,46 @@
 // competitive-verifier: PROBLEM
+#include <cstdint>
+#include <utility>
+namespace internal {
+template <int Idx>
+struct grid_impl {
+    template <class Head, class... Tail>
+    constexpr grid_impl(Head &&head, Tail &&...tail)
+        : limit(head), impl(std::forward<Tail>(tail)...) {}
+    template <class Head, class... Tail>
+    constexpr bool in_field(Head x, Tail &&...tail) const {
+        return 0 <= x && x < limit && impl.in_field(std::forward<Tail>(tail)...);
+    }
+    template <class Head, class... Tail>
+    constexpr std::int64_t flatten(Head x, Tail &&...tail) const {
+        return x + limit * impl.flatten(std::forward<Tail>(tail)...);
+    }
+  private:
+    std::int64_t limit;
+    grid_impl<Idx - 1> impl;
+};
+template <>
+struct grid_impl<0> {
+    constexpr grid_impl() {}
+    constexpr bool in_field() const { return true; }
+    constexpr std::int64_t flatten() const { return 0; }
+};
+}  // namespace internal
+template <int Idx>
+struct Grid {
+    template <class... Args, std::enable_if_t<(sizeof...(Args) == Idx)> * = nullptr>
+    constexpr Grid(Args &&...args) : entity(std::forward<Args>(args)...) {}
+    template <class... Args, std::enable_if_t<(sizeof...(Args) == Idx)> * = nullptr>
+    constexpr bool in_field(Args &&...args) const {
+        return entity.in_field(std::forward<Args>(args)...);
+    }
+    template <class... Args, std::enable_if_t<(sizeof...(Args) == Idx)> * = nullptr>
+    constexpr std::int64_t flatten(Args &&...args) const {
+        return entity.flatten(std::forward<Args>(args)...);
+    }
+  private:
+    internal::grid_impl<Idx> entity;
+};
 #ifdef ATCODER
 #pragma GCC target("sse4.2,avx512f,avx512dq,avx512ifma,avx512cd,avx512bw,avx512vl,bmi2")
 #endif
@@ -73,10 +115,40 @@ void NO(bool is_not_correct = true) { YES(!is_not_correct); }
 void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
 void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
 int main(void) {
-    int n;
-    cin >> n;
-    rep (i, n) {
-        co((i + 1) * 2 % n + 1, ((i + 1) * 2 + 1) % n + 1);
+    int h, w;
+    cin >> h >> w;
+    Grid<2> g(h, w);
+    vector<string> s(h);
+    cin >> s;
+    int a, b, c, d;
+    cin >> a >> b >> c >> d;
+    --a, --b, --c, --d;
+    priority_queue<tuple<int, int, int>, vector<tuple<int, int, int>>, greater<>> pq;
+    vector dp(h, vector(w, Inf));
+    dp[a][b] = 0;
+    pq.emplace(0, a, b);
+    vector<int> dx = {1, -1, 0, 0}, dy = {0, 0, -1, 1};
+    while (!pq.empty()) {
+        auto [d, x, y] = pq.top();
+        pq.pop();
+        if (dp[x][y] != d)
+            continue;
+        rep (k, 4) {
+            int nx = x + dx[k], ny = y + dy[k];
+            if (!g.in_field(nx, ny))
+                continue;
+            if (s[nx][ny] == '.') {
+                if (chmin(dp[nx][ny], d))
+                    pq.emplace(d, nx, ny);
+            } else {
+                if (chmin(dp[nx][ny], d + 1))
+                    pq.emplace(d + 1, nx, ny);
+                nx = x + dx[k] * 2, ny = y + dy[k] * 2;
+                if (g.in_field(nx, ny) && chmin(dp[nx][ny], d + 1))
+                    pq.emplace(d + 1, nx, ny);
+            }
+        }
     }
+    co(dp[c][d]);
     return 0;
 }

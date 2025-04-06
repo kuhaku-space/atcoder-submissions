@@ -73,10 +73,22 @@ void NO(bool is_not_correct = true) { YES(!is_not_correct); }
 void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
 void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
 int main(void) {
-    int n;
-    cin >> n;
-    rep (i, n) {
-        co((i + 1) * 2 % n + 1, ((i + 1) * 2 + 1) % n + 1);
+    ll n, m;
+    cin >> n >> m;
+    ll sum = 0;
+    ll x = 1;
+    rep (i, m + 1) {
+        if (x > 1000000000) {
+            co("inf");
+            return 0;
+        }
+        sum += x;
+        x *= n;
+    }
+    if (sum > 1000000000) {
+        co("inf");
+    } else {
+        co(sum);
     }
     return 0;
 }

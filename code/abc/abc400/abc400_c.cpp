@@ -73,10 +73,12 @@ void NO(bool is_not_correct = true) { YES(!is_not_correct); }
 void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
 void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
 int main(void) {
-    int n;
+    ll n;
     cin >> n;
-    rep (i, n) {
-        co((i + 1) * 2 % n + 1, ((i + 1) * 2 + 1) % n + 1);
+    ll ans = 0;
+    repn (i, 60) {
+        ans += (ll)sqrtl(n >> i) - (ll)sqrtl((n >> i) >> 2);
     }
+    co(ans);
     return 0;
 }

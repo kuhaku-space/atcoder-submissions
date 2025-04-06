@@ -75,8 +75,53 @@ void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
 int main(void) {
     int n;
     cin >> n;
-    rep (i, n) {
-        co((i + 1) * 2 % n + 1, ((i + 1) * 2 + 1) % n + 1);
+    vector<int> p(n);
+    cin >> p;
+    vector<int> c(n - 1);
+    cin >> c;
+    vector<int> ans(n - 1, -1);
+    vector<pair<int, int>> op;
+    rep (i, n - 1) {
+        int k = p[i] > p[i + 1];
+        if (k == c[i]) {
+            op.emplace_back(2, i + 1);
+            ans[i] = k;
+        }
+    }
+    rep (i, n - 1) {
+        if (ans[i] == -1) {
+            int t = p[i] > p[i + 1];
+            if (t == c[i]) {
+                op.emplace_back(2, i + 1);
+                ans[i] = t;
+            } else if (i < n - 1 && ans[i + 1] == -1) {
+                int k = p[i] > p[i + 2];
+                if (k == c[i + 1]) {
+                    op.emplace_back(1, i + 1);
+                    swap(p[i], p[i + 1]);
+                    op.emplace_back(2, i + 1);
+                    op.emplace_back(2, i + 2);
+                    ans[i] = p[i] > p[i + 1];
+                    ans[i] = p[i + 1] > p[i + 2];
+                } else {
+                    op.emplace_back(1, i + 2);
+                    swap(p[i + 1], p[i + 2]);
+                    op.emplace_back(2, i + 1);
+                    op.emplace_back(2, i + 2);
+                    ans[i] = p[i] > p[i + 1];
+                    ans[i] = p[i + 1] > p[i + 2];
+                }
+            } else {
+                op.emplace_back(1, i + 1);
+                swap(p[i], p[i + 1]);
+                op.emplace_back(2, i + 1);
+                ans[i] = p[i] > p[i + 1];
+            }
+        }
+    }
+    co(op.size());
+    for (auto [x, y] : op) {
+        co(x, y);
     }
     return 0;
 }

@@ -72,43 +72,23 @@ void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n");
 void NO(bool is_not_correct = true) { YES(!is_not_correct); }
 void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
 void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
-struct node {
-    int x;
-    int prev;
-    bool is_root() {
-        return prev == -1;
-    }
-};
 int main(void) {
-    int q;
-    cin >> q;
-    vector<node> nodes;
-    nodes.emplace_back(-1, -1);
-    int r = 0;
-    unordered_map<int, int> mp;
-    vector<int> ans;
-    while (q--) {
-        string s;
-        cin >> s;
-        if (s == "ADD") {
-            int x;
-            cin >> x;
-            nodes.emplace_back(x, r);
-            r = nodes.size() - 1;
-        } else if (s == "DELETE") {
-            if (!nodes[r].is_root())
-                r = nodes[r].prev;
-        } else if (s == "SAVE") {
-            int x;
-            cin >> x;
-            mp[x] = r;
-        } else {
-            int x;
-            cin >> x;
-            r = mp[x];
-        }
-        ans.emplace_back(nodes[r].x);
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    cin >> a;
+    vector<int> l(n + 1), r(n + 1);
+    set<int> sl, sr;
+    rep (i, n) {
+        sl.emplace(a[i]);
+        l[i + 1] = sl.size();
     }
-    co(ans);
+    repr (i, n) {
+        sr.emplace(a[i]);
+        r[i] = sr.size();
+    }
+    rep (i, n + 1) l[i] += r[i];
+    l[0] = 0;
+    co(*max_element(all(l)));
     return 0;
 }

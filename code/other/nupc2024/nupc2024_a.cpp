@@ -72,42 +72,25 @@ void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n");
 void NO(bool is_not_correct = true) { YES(!is_not_correct); }
 void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
 void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
-struct node {
-    int x;
-    int prev;
-    bool is_root() {
-        return prev == -1;
-    }
-};
 int main(void) {
-    int q;
-    cin >> q;
-    vector<node> nodes;
-    nodes.emplace_back(-1, -1);
-    int r = 0;
-    unordered_map<int, int> mp;
-    vector<int> ans;
-    while (q--) {
-        string s;
-        cin >> s;
-        if (s == "ADD") {
-            int x;
-            cin >> x;
-            nodes.emplace_back(x, r);
-            r = nodes.size() - 1;
-        } else if (s == "DELETE") {
-            if (!nodes[r].is_root())
-                r = nodes[r].prev;
-        } else if (s == "SAVE") {
-            int x;
-            cin >> x;
-            mp[x] = r;
-        } else {
-            int x;
-            cin >> x;
-            r = mp[x];
+    int n;
+    cin >> n;
+    vector<ll> a(n);
+    cin >> a;
+    ll s = accumulate(all(a), 0l);
+    if (s % n) {
+        co(-1);
+        return 0;
+    }
+    ll k = s / n;
+    ll ans = 0;
+    rep (i, n - 1) {
+        if (a[i] < k) {
+            co(-1);
+            return 0;
         }
-        ans.emplace_back(nodes[r].x);
+        ans += a[i] - k;
+        a[i + 1] += a[i] - k;
     }
     co(ans);
     return 0;

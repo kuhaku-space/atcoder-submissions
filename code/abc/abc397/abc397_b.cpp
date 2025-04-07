@@ -1,4 +1,47 @@
 // competitive-verifier: PROBLEM
+#include <locale>
+#include <string>
+#include <vector>
+struct string_converter {
+    char type(const char &c) const {
+        return (std::islower(c) ? 'a' : std::isupper(c) ? 'A' : std::isdigit(c) ? '0' : 0);
+    }
+    int convert(const char &c) {
+        if (!start) start = type(c);
+        return c - start;
+    }
+    int convert(const char &c, const std::string &chars) { return chars.find(c); }
+    template <typename T>
+    auto convert(const T &v) {
+        std::vector<decltype(convert(v[0]))> res;
+        res.reserve(v.size());
+        for (auto &&e : v) res.emplace_back(convert(e));
+        return res;
+    }
+    template <typename T>
+    auto convert(const T &v, const std::string &chars) {
+        std::vector<decltype(convert(v[0], chars))> res;
+        res.reserve(v.size());
+        for (auto &&e : v) res.emplace_back(convert(e, chars));
+        return res;
+    }
+    int operator()(const char &v, char s = 0) {
+        start = s;
+        return convert(v);
+    }
+    int operator()(const char &v, const std::string &chars) { return convert(v, chars); }
+    template <typename T>
+    auto operator()(const T &v, char s = 0) {
+        start = s;
+        return convert(v);
+    }
+    template <typename T>
+    auto operator()(const T &v, const std::string &chars) {
+        return convert(v, chars);
+    }
+  private:
+    char start = 0;
+} to_int;
 #ifdef ATCODER
 #pragma GCC target("sse4.2,avx512f,avx512dq,avx512ifma,avx512cd,avx512bw,avx512vl,bmi2")
 #endif
@@ -72,43 +115,22 @@ void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n");
 void NO(bool is_not_correct = true) { YES(!is_not_correct); }
 void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
 void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
-struct node {
-    int x;
-    int prev;
-    bool is_root() {
-        return prev == -1;
-    }
-};
 int main(void) {
-    int q;
-    cin >> q;
-    vector<node> nodes;
-    nodes.emplace_back(-1, -1);
-    int r = 0;
-    unordered_map<int, int> mp;
-    vector<int> ans;
-    while (q--) {
-        string s;
-        cin >> s;
-        if (s == "ADD") {
-            int x;
-            cin >> x;
-            nodes.emplace_back(x, r);
-            r = nodes.size() - 1;
-        } else if (s == "DELETE") {
-            if (!nodes[r].is_root())
-                r = nodes[r].prev;
-        } else if (s == "SAVE") {
-            int x;
-            cin >> x;
-            mp[x] = r;
-        } else {
-            int x;
-            cin >> x;
-            r = mp[x];
+    string s;
+    cin >> s;
+    auto v = to_int(s, "io");
+    int x = 0;
+    int n = s.size();
+    int ans = 0;
+    rep (i, n) {
+        if (v[i] != x) {
+            ++ans;
+            x = !x;
         }
-        ans.emplace_back(nodes[r].x);
+        x = !x;
     }
+    if ((ans + n) & 1)
+        ++ans;
     co(ans);
     return 0;
 }

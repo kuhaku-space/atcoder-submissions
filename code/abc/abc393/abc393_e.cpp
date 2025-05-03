@@ -1,124 +1,85 @@
 // competitive-verifier: PROBLEM
-#include <algorithm>
-#include <bitset>
-#include <cassert>
+#include <array>
+#include <cmath>
 #include <cstdint>
-#include <iterator>
-#include <utility>
 #include <vector>
-/**
- * @brief 素数ライブラリ
- *
- * @tparam N
- */
-template <int N = 1 << 22>
-struct prime_number {
-    prime_number() : is_not_prime(), data() { init(); }
-    /**
-     * @brief 素数判定
-     *
-     * @param n
-     * @return bool
-     */
-    bool is_prime(std::int64_t n) const {
-        assert(n >= 0);
-        if (n < N) return !is_not_prime[n];
-        for (auto i : data) {
-            if ((std::int64_t)i * i > n) break;
-            if (n % i == 0) return false;
-        }
-        return true;
-    }
-    std::vector<int> prime_numbers(int x) const {
-        std::vector<int> res;
-        for (auto i : data) {
-            if (i > x) break;
-            res.emplace_back(i);
-        }
-        return res;
-    }
-    /**
-     * @brief 素因数分解
-     *
-     * @tparam T
-     * @param x
-     * @return std::vector<std::pair<T, int>>
-     */
-    template <class T>
-    std::vector<std::pair<T, int>> prime_factorization(T x) const {
-        if (x == 1) return std::vector<std::pair<T, int>>();
-        std::vector<std::pair<T, int>> res;
-        for (auto p : data) {
-            int cnt = 0;
-            for (; x % p == 0; x /= p) ++cnt;
-            if (cnt) res.emplace_back(p, cnt);
-            if ((std::int64_t)p * p > x) break;
-        }
-        if (x != 1) res.emplace_back(x, 1);
-        return res;
-    }
-    /**
-     * @brief 約数列挙
-     *
-     * @tparam T
-     * @param x
-     * @return std::vector<T>
-     */
-    template <class T>
-    std::vector<T> divisors(T x) const {
-        if (x == 1) return std::vector<T>(1, 1);
-        auto v = prime_factorization(x);
-        std::vector<T> res;
-        res.emplace_back(1);
-        for (auto p : v) {
-            int n = res.size();
-            res.resize(n * (p.second + 1));
-            for (int i = 0; i < n * p.second; ++i) res[n + i] = res[i] * p.first;
-            for (int i = 1; i <= p.second; ++i) {
-                std::inplace_merge(res.begin(), res.begin() + n * i, res.begin() + n * (i + 1));
-            }
-        }
-        return res;
-    }
-    /**
-     * @brief 因数分解列挙
-     *
-     * @tparam T
-     * @param x
-     * @return std::vector<std::vector<T>>
-     */
-    template <class T>
-    std::vector<std::vector<T>> factorization(T x) const {
-        std::vector<std::vector<T>> res;
-        auto f = [&](auto self, std::vector<T> v, T a) -> void {
-            if (a == 1) res.emplace_back(v);
-            for (auto i : this->divisors(a)) {
-                if (i == 1 || (!v.empty() && v.back() > i)) continue;
-                v.emplace_back(i);
-                self(self, v, a / i);
-                v.pop_back();
-            }
-        };
-        f(f, std::vector<T>(), x);
-        return res;
-    }
+/// @brief エラトステネスの篩
+/// @see https://qiita.com/peria/items/a4ff4ddb3336f7b81d50
+template <int N = (1 << 22)>
+struct eratosthenes {
   private:
-    std::bitset<N> is_not_prime;
-    std::vector<int> data;
-    void init() {
-        is_not_prime[0] = is_not_prime[1] = true;
-        for (int i = 2; i < N; ++i) {
-            if (!is_not_prime[i]) {
-                data.emplace_back(i);
-                if ((std::int64_t)i * i >= N) continue;
-                if (i == 2) {
-                    for (int j = i * i; j < N; j += i) is_not_prime[j] = true;
-                } else {
-                    for (int j = i * i; j < N; j += i << 1) is_not_prime[j] = true;
+    static constexpr int SIZE = N / 30 + (N % 30 != 0);
+    static constexpr std::array<int, 8> kMod30 = {1, 7, 11, 13, 17, 19, 23, 29};
+    static constexpr std::array<int, 8> C1 = {6, 4, 2, 4, 2, 4, 6, 2};
+    static constexpr std::array<std::array<int, 8>, 8> C0 = {
+        0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 2, 2, 0, 2, 0, 2,
+        2, 1, 3, 1, 1, 2, 1, 1, 3, 1, 3, 3, 1, 2, 1, 3, 3, 1, 4, 2, 2, 2,
+        2, 2, 4, 1, 5, 3, 1, 4, 1, 3, 5, 1, 6, 4, 2, 4, 2, 4, 6, 1,
+    };
+    static constexpr std::array<std::array<std::uint8_t, 8>, 8> kMask = {
+        0xfe, 0xfd, 0xfb, 0xf7, 0xef, 0xdf, 0xbf, 0x7f, 0xfd, 0xdf, 0xef, 0xfe, 0x7f,
+        0xf7, 0xfb, 0xbf, 0xfb, 0xef, 0xfe, 0xbf, 0xfd, 0x7f, 0xf7, 0xdf, 0xf7, 0xfe,
+        0xbf, 0xdf, 0xfb, 0xfd, 0x7f, 0xef, 0xef, 0x7f, 0xfd, 0xfb, 0xdf, 0xbf, 0xfe,
+        0xf7, 0xdf, 0xf7, 0x7f, 0xfd, 0xbf, 0xfe, 0xef, 0xfb, 0xbf, 0xfb, 0xf7, 0x7f,
+        0xfe, 0xef, 0xdf, 0xfd, 0x7f, 0xbf, 0xdf, 0xef, 0xf7, 0xfb, 0xfd, 0xfe,
+    };
+  public:
+    constexpr eratosthenes() {
+        prime_number.fill(0xff);
+        prime_number[0] = 0xfe;
+        if (int r = N % 30) {
+            if (r < 7) prime_number[SIZE - 1] = 0x1;
+            else if (r < 11) prime_number[SIZE - 1] = 0x3;
+            else if (r < 13) prime_number[SIZE - 1] = 0x7;
+            else if (r < 17) prime_number[SIZE - 1] = 0xf;
+            else if (r < 19) prime_number[SIZE - 1] = 0x1f;
+            else if (r < 23) prime_number[SIZE - 1] = 0x3f;
+            else if (r < 29) prime_number[SIZE - 1] = 0x7f;
+        }
+        const std::uint64_t sqrt_x = std::ceil(std::sqrt(N) + 0.1);
+        const std::uint64_t sqrt_xi = sqrt_x / 30 + 1;
+        for (std::uint64_t i = 0; i < sqrt_xi; ++i) {
+            for (std::uint8_t flags = prime_number[i]; flags; flags &= flags - 1) {
+                std::uint8_t lsb = flags & (-flags);
+                const int ibit = __builtin_ctz(lsb);
+                const int m = kMod30[ibit];
+                const int pm = 30 * i + 2 * m;
+                for (std::uint64_t j = i * pm + (m * m) / 30, k = ibit; j < SIZE;
+                     j += i * C1[k] + C0[ibit][k], k = (k + 1) & 7) {
+                    prime_number[j] &= kMask[ibit][k];
                 }
             }
         }
     }
+    /// @brief 素数判定
+    bool is_prime(int x) const {
+        switch (x % 30) {
+            case 1: return prime_number[x / 30] >> 0 & 1;
+            case 7: return prime_number[x / 30] >> 1 & 1;
+            case 11: return prime_number[x / 30] >> 2 & 1;
+            case 13: return prime_number[x / 30] >> 3 & 1;
+            case 17: return prime_number[x / 30] >> 4 & 1;
+            case 19: return prime_number[x / 30] >> 5 & 1;
+            case 23: return prime_number[x / 30] >> 6 & 1;
+            case 29: return prime_number[x / 30] >> 7 & 1;
+        }
+        if (x < 6) {
+            if (x == 2) return true;
+            if (x == 3) return true;
+            if (x == 5) return true;
+        }
+        return false;
+    }
+    std::vector<int> prime_numbers(int x) const {
+        if (x < 2) return std::vector<int>();
+        std::vector<int> res = {2};
+        for (int i = 3; i <= x; i += 2) {
+            if (is_prime(i)) res.emplace_back(i);
+        }
+        return res;
+    }
+  private:
+    std::array<std::uint8_t, SIZE> prime_number;
 };
 #ifdef ATCODER
 #pragma GCC target("sse4.2,avx512f,avx512dq,avx512ifma,avx512cd,avx512bw,avx512vl,bmi2")
@@ -193,29 +154,27 @@ void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n");
 void NO(bool is_not_correct = true) { YES(!is_not_correct); }
 void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
 void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
-prime_number pn;
+eratosthenes pn;
 int main(void) {
     int n, k;
     cin >> n >> k;
     vector<int> a(n);
     cin >> a;
-    int l = 1000001;
-    vector<int> c(l);
-    rep (i, n) ++c[a[i]];
-    vector<int> d(l);
-    rep (i, l) {
-        if (c[i]) {
-            auto v = pn.divisors(i);
-            for (auto x : v) d[x] += c[i];
+    int l = 1000000;
+    vector<int> b(l + 1);
+    for (auto x : a) ++b[x];
+    for (int p = 2; p <= l; ++p) {
+        if (!pn.is_prime(p))
+            continue;
+        for (int i = l / p; i >= 1; --i) {
+            b[i] += b[i * p];
         }
     }
-    vector<int> ans(l);
-    rep (i, l) {
-        if (c[i]) {
-            auto v = pn.divisors(i);
-            for (auto x : v) {
-                if (d[x] >= k)
-                    chmax(ans[i], x);
+    vector<int> ans(l + 1);
+    repn (i, l) {
+        if (b[i] >= k) {
+            for (int j = i; j <= l; j += i) {
+                ans[j] = i;
             }
         }
     }

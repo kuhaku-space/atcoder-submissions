@@ -170,14 +170,18 @@ int main(void) {
             b[i] += b[i * p];
         }
     }
-    vector<int> ans(l + 1);
-    repn (i, l) {
-        if (b[i] >= k) {
-            for (int j = i; j <= l; j += i) {
-                ans[j] = i;
-            }
+    vector<int> ans(l + 1, 1);
+    for (int i = 2; i <= l; ++i) {
+        if (b[i] >= k) ans[i] = i;
+    }
+    for (int p = 2; p <= l; ++p) {
+        if (!pn.is_prime(p))
+            continue;
+        for (int i = 2; i * p <= l; ++i) {
+            chmax(ans[i * p], ans[i]);
         }
     }
+    
     rep (i, n) co(ans[a[i]]);
     return 0;
 }

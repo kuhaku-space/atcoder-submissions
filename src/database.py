@@ -66,7 +66,9 @@ class Database:
         return self.__cur.fetchone()[0] == submission_data["id"]
 
     def is_saved_submission(self, table_name: str, submission_data) -> bool:
-        sql_str = f"select count(*) from '{table_name}'where id={submission_data['id']}"
+        sql_str = (
+            f"select count(*) from '{table_name}' where id={submission_data['id']}"
+        )
         self.__cur.execute(sql_str)
         return self.__cur.fetchone()[0] != 0
 
@@ -75,10 +77,10 @@ class Database:
         search_table_name: str,
         save_table_name: str,
         columns_type: dict[str, str],
-        submissons,
+        submissions,
     ) -> None:
         cnt = 0
-        for submission_data in submissons:
+        for submission_data in submissions:
             if self.is_latest_submission(
                 search_table_name, submission_data
             ) and not self.is_saved_submission(save_table_name, submission_data):

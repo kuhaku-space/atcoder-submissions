@@ -98,26 +98,24 @@ void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n");
 void NO(bool is_not_correct = true) { YES(!is_not_correct); }
 void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
 void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
-bool is_correct_parenthesis_sequences(const std::string &s) {
-    int cnt = 0;
-    for (char c : s) {
-        if (c == '(') ++cnt;
-        else if (cnt == 0) return false;
-        else --cnt;
-    }
-    return cnt == 0;
-}
 int main(void) {
-    int n;
-    cin >> n;
-    rep (bit, 1 << n) {
-        string s(n, '(');
-        rep (i, n) {
-            if (bit >> i & 1)
-                s[n - 1 - i] = ')';
-        }
-        if (is_correct_parenthesis_sequences(s)) {
-            co(s);
+    int n, q;
+    cin >> n >> q;
+    deque<int> a(n);
+    for (auto &e : a) std::cin >> e;
+    while (q--) {
+        int t, x, y;
+        cin >> t >> x >> y;
+        if (t == 1) {
+            --x, --y;
+            swap(a[x], a[y]);
+        } else if (t == 2) {
+            int e = a.back();
+            a.pop_back();
+            a.emplace_front(e);
+        } else {
+            --x;
+            co(a[x]);
         }
     }
     return 0;

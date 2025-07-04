@@ -98,65 +98,57 @@ void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n");
 void NO(bool is_not_correct = true) { YES(!is_not_correct); }
 void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
 void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
-/// @brief Mex
-struct minimum_excluded {
-    minimum_excluded() : n(), _size(), exists(64), v() {}
-    constexpr int operator()() const noexcept { return n; }
-    constexpr int get() const noexcept { return n; }
-    void add(int x) {
-        if (x < 0) return;
-        ++_size;
-        if (_size == (int)exists.size()) {
-            exists.resize(_size << 1);
-            std::erase_if(v, [&](int y) {
-                if (y < (int)exists.size()) {
-                    if (exists[y]) --_size;
-                    else exists[y] = true;
-                    return true;
-                }
-                return false;
-            });
+/// @brief 二次元累積和
+template <class T>
+struct cumulative_sum_2d {
+    cumulative_sum_2d(int _n, int _m) : v(_n, std::vector<T>(_m)), n(_n), m(_m) {}
+    cumulative_sum_2d(const std::vector<std::vector<T>> &_v) : v(_v) { build(); }
+    void set(int x, int y, T val) { v[x][y] = val; }
+    void add(int x, int y, T val) { v[x][y] += val; }
+    void build() {
+        n = v.size();
+        assert(n > 0);
+        m = v[0].size();
+        assert(m > 0);
+        v.resize(n + 1);
+        for (int i = 0; i <= n; ++i) v[i].resize(m + 1);
+        for (int i = n - 1; i >= 0; --i) {
+            for (int j = m - 1; j >= 0; --j) v[i][j] += v[i][j + 1];
         }
-        if (x < (int)exists.size()) {
-            if (exists[x]) --_size;
-            else exists[x] = true;
-        } else {
-            v.emplace_back(x);
+        for (int i = n - 1; i >= 0; --i) {
+            for (int j = m - 1; j >= 0; --j) v[i][j] += v[i + 1][j];
         }
-        while (exists[n]) ++n;
+    }
+    T get(int x1, int y1, int x2, int y2) {
+        assert(0 <= x1 && x1 <= x2 && x2 <= n && 0 <= y1 && y1 <= y2 && y2 <= m);
+        return v[x1][y1] - v[x1][y2] - v[x2][y1] + v[x2][y2];
     }
   private:
-    int n, _size;
-    std::vector<bool> exists;
-    std::vector<int> v;
+    std::vector<std::vector<T>> v;
+    int n, m;
 };
-void solve() {
-    int n;
-    cin >> n;
-    vector<int> l(n), r(n);
-    rep (i, n) cin >> l[i] >> r[i];
-    vector<vector<int>> a(101, vector<int>(101, -1));
-    // auto b = a;
-    auto f = [&](auto self, int x, int y) {
-        // ce(x, y);
-        if (a[x][y] != -1)
-            return a[x][y];
-        minimum_excluded mex;
-        rep (i, n) {
-            if (x <= l[i] && r[i] <= y)
-                mex.add(self(self, x, l[i]) ^ self(self, r[i], y));
-        }
-        return a[x][y] = mex();
-    };
-    if (f(f, 1, 100)) {
-        puts("Alice");
-    } else {
-        puts("Bob");
-    }
-}
 int main(void) {
-    int t;
-    cin >> t;
-    while (t--) solve();
+    int n, m;
+    cin >> n >> m;
+    vector<pair<int, int>> a(m);
+    cin >> a;
+    rep (i, m) --a[i].first;
+    vector v(n + 1, vector(n + 1, 0));
+    rep (i, m) ++v[a[i].first][a[i].second];
+    cumulative_sum_2d cs(v);
+    vector dp(n + 1, vector(n + 1, 0));
+    repn (k, n) {
+        rep (l, n + 1) {
+            if (l + k > n)
+                break;
+            rep (m, k + 1) {
+                if (cs.get(l, l + m + 1, l + m + 1, l + k + 1))
+                    chmax(dp[l][l + k], dp[l][l + m] + dp[l + m + 1][l + k] + 1);
+            }
+        }
+    }
+    ll ans = 0;
+    rep (i, n + 1) chmax(ans, *max_element(all(dp[i])));
+    co(ans);
     return 0;
 }

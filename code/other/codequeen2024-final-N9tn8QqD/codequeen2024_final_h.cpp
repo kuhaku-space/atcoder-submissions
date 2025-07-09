@@ -1,232 +1,59 @@
-// competitive-verifier: PROBLEM
-#ifdef ATCODER
-#pragma GCC target("sse4.2,avx512f,avx512dq,avx512ifma,avx512cd,avx512bw,avx512vl,bmi2")
-#endif
-#pragma GCC optimize("Ofast,fast-math,unroll-all-loops")
-#include <bits/stdc++.h>
-#ifndef ATCODER
-#pragma GCC target("sse4.2,avx2,bmi2")
-#endif
-template <class T, class U>
-constexpr bool chmax(T &a, const U &b) {
-    return a < (T)b ? a = (T)b, true : false;
-}
-template <class T, class U>
-constexpr bool chmin(T &a, const U &b) {
-    return (T)b < a ? a = (T)b, true : false;
-}
-constexpr std::int64_t INF = 1000000000000000003;
-constexpr int Inf = 1000000003;
-constexpr double EPS = 1e-7;
-constexpr double PI = 3.14159265358979323846;
-#define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
-#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
-#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
-#define rep(i, n) FOR (i, 0, n)
-#define repn(i, n) FOR (i, 1, n + 1)
-#define repr(i, n) FORR (i, n, 0)
-#define repnr(i, n) FORR (i, n + 1, 1)
-#define all(s) (s).begin(), (s).end()
-struct Sonic {
-    Sonic() {
-        std::ios::sync_with_stdio(false);
-        std::cin.tie(nullptr);
-        std::cout << std::fixed << std::setprecision(20);
-    }
-    constexpr void operator()() const {}
-} sonic;
+#include<bits/stdc++.h>
 using namespace std;
-using ll = std::int64_t;
-using ld = long double;
-template <class T, class U>
-std::istream &operator>>(std::istream &is, std::pair<T, U> &p) {
-    return is >> p.first >> p.second;
+using pl=pair<long long,long long>;
+bool comp(const pl &l, const pl &r){
+  return (l.first-l.second) > (r.first-r.second);
 }
-template <class T>
-std::istream &operator>>(std::istream &is, std::vector<T> &v) {
-    for (T &i : v) is >> i;
-    return is;
-}
-template <class T, class U>
-std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
-    return os << '(' << p.first << ',' << p.second << ')';
-}
-template <class T>
-std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
-    for (auto it = v.begin(); it != v.end(); ++it) os << (it == v.begin() ? "" : " ") << *it;
-    return os;
-}
-template <class Head, class... Tail>
-void co(Head &&head, Tail &&...tail) {
-    if constexpr (sizeof...(tail) == 0) std::cout << head << '\n';
-    else std::cout << head << ' ', co(std::forward<Tail>(tail)...);
-}
-template <class Head, class... Tail>
-void ce(Head &&head, Tail &&...tail) {
-    if constexpr (sizeof...(tail) == 0) std::cerr << head << '\n';
-    else std::cerr << head << ' ', ce(std::forward<Tail>(tail)...);
-}
-void Yes(bool is_correct = true) { std::cout << (is_correct ? "Yes\n" : "No\n"); }
-void No(bool is_not_correct = true) { Yes(!is_not_correct); }
-void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n"); }
-void NO(bool is_not_correct = true) { YES(!is_not_correct); }
-void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
-void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
-template <typename T, typename Comp = std::less<T>, typename RComp = std::greater<T>>
-struct priority_k_sum
-{
-    priority_k_sum(int k) : k(k), sum()
+int main(){
+  long long n,k,t;
+  cin >> n >> k >> t;
+  vector<pl> a(n);
+  for(long long i=0;i<n;i++){
+    cin >> a[i].first >> a[i].second;
+  }
+  sort(a.begin(),a.end(),comp);
+  long long l=1,r=n;
+  while(l<=r){
+    long long x=(l+r)/2;
+    vector<long long> pre(n+1,4e18);
+    vector<long long> suf(n+1,4e18);
+    long long ps=min(x,k);
+    long long ss=max(x-k,0ll);
     {
-        assert(k >= 0);
-    }
-    T query() const
-    {
-        return sum;
-    }
-    void insert(T x)
-    {
-        sum += x;
-        in.emplace(x);
-        modify();
-    }
-    void erase(T x)
-    {
-        assert(size());
-        if (!in.empty() && in.top() == x)
-            sum -= x, in.pop();
-        else if (!in.empty() && RComp()(in.top(), x))
-            sum -= x, d_in.emplace(x);
-        else
-            d_out.emplace(x);
-        modify();
-    }
-    void set_k(int x)
-    {
-        assert(x >= 0);
-        k = x;
-        modify();
-    }
-    int get_k() const
-    {
-        return k;
-    }
-    int size() const
-    {
-        return (int)in.size() + (int)out.size() - (int)d_in.size() - (int)d_out.size();
-    }
-private:
-    int k;
-    T sum;
-    std::priority_queue<T, std::vector<T>, Comp> in, d_in;
-    std::priority_queue<T, std::vector<T>, RComp> out, d_out;
-    void modify()
-    {
-        while ((int)in.size() - (int)d_in.size() < k && !out.empty())
-        {
-            auto p = out.top();
-            out.pop();
-            if (!d_out.empty() && p == d_out.top())
-                d_out.pop();
-            else
-                sum += p, in.emplace(p);
+      long long sum=0;
+      priority_queue<long long> pq;
+      for(long long i=0;i<n;i++){
+        sum+=a[i].second;
+        pq.push(a[i].second);
+        if(pq.size()>ps){
+          long long od=pq.top(); pq.pop();
+          sum-=od;
         }
-        while ((int)in.size() - (int)d_in.size() > k)
-        {
-            auto p = in.top();
-            in.pop();
-            if (!d_in.empty() && p == d_in.top())
-                d_in.pop();
-            else
-                sum -= p, out.emplace(p);
-        }
-        while (!d_in.empty() && in.top() == d_in.top())
-            in.pop(), d_in.pop();
+        if(pq.size()==ps){pre[i]=sum;}
+      }
     }
-};
-template <typename T>
-using maximum_sum = priority_k_sum<T, std::greater<T>, std::less<T>>;
-template <typename T>
-using minimum_sum = priority_k_sum<T, std::less<T>, std::greater<T>>;
-int main(void)
-{
-    int n, k;
-    cin >> n >> k;
-    ll t;
-    cin >> t;
-    vector<pair<ll, ll>> a(n);
-    cin >> a;
-    auto b = a, c = a;
-    rep(i, n)
+    
     {
-        b[i] = {a[i].first, i};
-        c[i] = {a[i].second, i};
+      long long sum=0;
+      priority_queue<long long> pq;
+      if(ss==0){suf[n]=0;}
+      for(long long i=n-1;i>=0;i--){
+        sum+=a[i].first;
+        pq.push(a[i].first);
+        if(pq.size()>ss){
+          long long od=pq.top(); pq.pop();
+          sum-=od;
+        }
+        if(pq.size()==ss){suf[i]=sum;}
+      }
     }
-    sort(all(b));
-    sort(all(c));
-    int l = 0, r = n + 1;
-    while (r - l > 1)
-    {
-        int m = (l + r) / 2;
-        if (m <= k)
-        {
-            ll s = 0;
-            rep(i, m)
-            {
-                int idx = c[i].second;
-                s += a[idx].second;
-            }
-            if (s <= t)
-                l = m;
-            else
-                r = m;
-            continue;
-        }
-        vector<ll> v(n), u(n, -1);
-        minimum_sum<ll> ms(0);
-        ll s = 0;
-        rep(i, n)
-        {
-            int idx = c[i].second;
-            s += a[idx].second;
-            ms.insert(a[idx].first - a[idx].second);
-            if (i >= k - 1)
-            {
-                v[i] = s + ms.query();
-                u[i] = i + 1;
-                ms.set_k(ms.get_k() + 1);
-            }
-            else
-            {
-                u[i] = -1;
-                v[i] = INF;
-            }
-        }
-        ms = minimum_sum<ll>(0);
-        repr(i, n)
-        {
-            int idx = c[i].second;
-            if (i < m)
-            {
-                if (v[i] == INF)
-                    break;
-                v[i] += ms.query();
-                u[i] += ms.get_k();
-                ms.set_k(ms.get_k() + 1);
-            }
-            else
-            {
-                u[i] = -1;
-                v[i] = INF;
-            }
-                        ms.insert(a[idx].first);
-
-        }
-        s = *min_element(all(v));
-        if (s <= t)
-            l = m;
-        else
-            r = m;
+    long long tim=8e18;
+    for(long long i=0;i<n;i++){
+      tim=min(tim,pre[i]+suf[i+1]);
     }
-    co(l);
-    return 0;
+    if(tim<=t){l=x+1;}
+    else{r=x-1;}
+  }
+  cout << r << "\n";
+  return 0;
 }

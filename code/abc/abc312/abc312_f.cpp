@@ -1,85 +1,7 @@
-// competitive-verifier: PROBLEM
-#include <cassert>
-#include <functional>
-#include <queue>
-#include <vector>
-#include <utility>
-/**
- * @brief 削除可能優先度付きキュー
- *
- * @tparam T
- */
-template <class T, class Comp = std::less<>>
-struct erasable_priority_queue {
-    bool empty() const { return a.empty(); }
-    int size() const { return a.size() - b.size(); }
-    T top() const { return a.top(); }
-    void insert(const T &x) { a.push(x); }
-    void insert(T &&x) { a.push(std::move(x)); }
-    void push(const T &x) { a.push(x); }
-    void push(T &&x) { a.push(std::move(x)); }
-    template <typename... Args>
-    void emplace(Args &&...args) {
-        a.emplace(std::forward<Args>(args)...);
-    }
-    void pop() { erase(a.top()); }
-    void erase(T x) {
-        b.emplace(x);
-        while (!b.empty() && a.top() == b.top()) { a.pop(), b.pop(); }
-    }
-  private:
-    std::priority_queue<T, std::vector<T>, Comp> a, b;
-};
-template <typename T, class Comp, class RComp>
-struct priority_k_sum {
-    priority_k_sum(int k) : k(k), sum() { assert(k >= 0); }
-    T query() const { return sum; }
-    void insert(T x) {
-        sum += x;
-        in.emplace(x);
-        modify();
-    }
-    void erase(T x) {
-        assert(size());
-        if (!in.empty() && !Comp()(in.top(), x)) sum -= x, in.erase(x);
-        else out.erase(x);
-        modify();
-    }
-    void set_k(int x) {
-        assert(x >= 0);
-        k = x;
-        modify();
-    }
-    int get_k() const { return k; }
-    int size() const { return in.size() + out.size(); }
-  private:
-    int k;
-    T sum;
-    erasable_priority_queue<T, Comp> in;
-    erasable_priority_queue<T, RComp> out;
-    void modify() {
-        while (in.size() < k && !out.empty()) {
-            auto p = out.top();
-            out.pop();
-            sum += p, in.emplace(p);
-        }
-        while (in.size() > k) {
-            auto p = in.top();
-            in.pop();
-            sum -= p, out.emplace(p);
-        }
-    }
-};
-template <typename T>
-using maximum_sum = priority_k_sum<T, std::greater<T>, std::less<T>>;
-template <typename T>
-using minimum_sum = priority_k_sum<T, std::less<T>, std::greater<T>>;
-#ifdef ATCODER
-#pragma GCC target("sse4.2,avx512f,avx512dq,avx512ifma,avx512cd,avx512bw,avx512vl,bmi2")
-#endif
+// competitive-verifier: PROBLEM https://judge.yosupo.jp/problem/convolution_mod
 #pragma GCC optimize("Ofast,fast-math,unroll-all-loops")
 #include <bits/stdc++.h>
-#ifndef ATCODER
+#if !defined(ATCODER) && !defined(EVAL)
 #pragma GCC target("sse4.2,avx2,bmi2")
 #endif
 template <class T, class U>
@@ -95,8 +17,8 @@ constexpr int Inf = 1000000003;
 constexpr double EPS = 1e-7;
 constexpr double PI = 3.14159265358979323846;
 #define FOR(i, m, n) for (int i = (m); i < int(n); ++i)
-#define FORR(i, m, n) for (int i = (m)-1; i >= int(n); --i)
-#define FORL(i, m, n) for (int64_t i = (m); i < int64_t(n); ++i)
+#define FORR(i, m, n) for (int i = (m) - 1; i >= int(n); --i)
+#define FORL(i, m, n) for (std::int64_t i = (m); i < std::int64_t(n); ++i)
 #define rep(i, n) FOR (i, 0, n)
 #define repn(i, n) FOR (i, 1, n + 1)
 #define repr(i, n) FORR (i, n, 0)
@@ -110,6 +32,35 @@ struct Sonic {
     }
     constexpr void operator()() const {}
 } sonic;
+struct increment_impl {
+    template <class T>
+    const increment_impl &operator>>(std::vector<T> &v) const {
+        for (auto &x : v) ++x;
+        return *this;
+    }
+} Inc;
+struct decrement_impl {
+    template <class T>
+    const decrement_impl &operator>>(std::vector<T> &v) const {
+        for (auto &x : v) --x;
+        return *this;
+    }
+} Dec;
+struct sort_impl {
+    template <class T>
+    const sort_impl &operator>>(std::vector<T> &v) const {
+        std::sort(v.begin(), v.end());
+        return *this;
+    }
+} Sort;
+struct unique_impl {
+    template <class T>
+    const unique_impl &operator>>(std::vector<T> &v) const {
+        std::sort(v.begin(), v.end());
+        v.erase(std::unique(v.begin(), v.end()), v.end());
+        return *this;
+    }
+} Uniq;
 using namespace std;
 using ll = std::int64_t;
 using ld = long double;
@@ -147,6 +98,226 @@ void YES(bool is_correct = true) { std::cout << (is_correct ? "YES\n" : "NO\n");
 void NO(bool is_not_correct = true) { YES(!is_not_correct); }
 void Takahashi(bool is_correct = true) { std::cout << (is_correct ? "Takahashi" : "Aoki") << '\n'; }
 void Aoki(bool is_not_correct = true) { Takahashi(!is_not_correct); }
+#include <optional>
+template <class T>
+struct ordered_set {
+  private:
+    struct node_t {
+        using pointer = node_t *;
+        T val, total;
+        int height, count;
+        pointer left, right;
+        constexpr node_t(T _val) : val(_val), total(_val), height(1), count(1), left(nullptr), right(nullptr) {}
+        static constexpr T get_total(pointer node) { return node == nullptr ? T() : node->total; }
+        static constexpr int get_height(pointer node) { return node == nullptr ? 0 : node->height; }
+        static constexpr int get_count(pointer node) { return node == nullptr ? 0 : node->count; }
+        static constexpr int get_balance_factor(pointer node) {
+            return node == nullptr ? 0 : node_t::get_height(node->left) - node_t::get_height(node->right);
+        }
+        constexpr void update() {
+            total = node_t::get_total(left) + val + node_t::get_total(right);
+            height = std::max(node_t::get_height(left), node_t::get_height(right)) + 1;
+            count = node_t::get_count(left) + node_t::get_count(right) + 1;
+        }
+        constexpr bool is_leaf() const { return left == nullptr && right == nullptr; }
+    };
+  public:
+    using node_type = node_t;
+    using node_ptr = typename node_t::pointer;
+    constexpr ordered_set() : root(nullptr) {}
+    constexpr ordered_set(const std::vector<T> &v) : root(nullptr) {
+        auto build = [&v](auto self, int l, int r) -> node_ptr {
+            if (l == r) return nullptr;
+            int m = (l + r) >> 1;
+            auto node = new node_t(v[m]);
+            node->left = self(self, l, m);
+            node->right = self(self, m + 1, r);
+            node->update();
+            return node;
+        };
+        root = build(build, 0, v.size());
+    }
+    constexpr bool empty() const { return root == nullptr; }
+    constexpr int size() const { return node_t::get_count(root); }
+    void insert(T val) { root = insert(root, val); }
+    void erase(T val) { root = erase(root, val); }
+    void pop_front() { root = erase(root, front()); }
+    void pop_back() { root = erase(root, back()); }
+    T front() {
+        assert(root);
+        node_ptr node = root;
+        while (node->left) node = node->left;
+        return node->val;
+    }
+    T back() {
+        assert(root);
+        node_ptr node = root;
+        while (node->right) node = node->right;
+        return node->val;
+    }
+    T get(int k) const {
+        assert(0 <= k && k < size());
+        node_ptr node = root;
+        while (true) {
+            int c = node_t::get_count(node->left);
+            if (c == k) break;
+            if (k < c) node = node->left;
+            else node = node->right, k -= c + 1;
+        }
+        return node->val;
+    }
+    int count(T val) const { return upper_bound(val) - lower_bound(val); }
+    bool contains(T val) const {
+        node_ptr node = root;
+        while (node && node->val != val) node = (val < node->val ? node->left : node->right);
+        return node != nullptr;
+    }
+    int lower_bound(T val) const {
+        int res = 0;
+        node_ptr node = root;
+        while (node) {
+            if (!(node->val < val)) node = node->left;
+            else res += node_t::get_count(node->left) + 1, node = node->right;
+        }
+        return res;
+    }
+    int upper_bound(T val) const {
+        int res = 0;
+        node_ptr node = root;
+        while (node) {
+            if (val < node->val) node = node->left;
+            else res += node_t::get_count(node->left) + 1, node = node->right;
+        }
+        return res;
+    }
+    std::optional<T> floor(T val) const {
+        std::optional<T> res = std::nullopt;
+        node_ptr node = root;
+        while (node) {
+            if (!(val < node->val)) res = node->val, node = node->right;
+            else node = node->left;
+        }
+        return res;
+    }
+    std::optional<T> ceil(T val) const {
+        std::optional<T> res = std::nullopt;
+        node_ptr node = root;
+        while (node) {
+            if (!(node->val < val)) res = node->val, node = node->left;
+            else node = node->right;
+        }
+        return res;
+    }
+    T minimum_sum(int k) const {
+        assert(0 <= k && k <= size());
+        if (k == size()) return node_t::get_total(root);
+        T res{};
+        node_ptr node = root;
+        while (node && k) {
+            int c = node_t::get_count(node->left);
+            if (k < c) {
+                node = node->left;
+            } else {
+                res += node_t::get_total(node->left);
+                if (k == c) break;
+                res += node->val;
+                node = node->right, k -= c + 1;
+            }
+        }
+        return res;
+    }
+    T maximum_sum(int k) const {
+        assert(0 <= k && k <= size());
+        if (k == size()) return node_t::get_total(root);
+        T res{};
+        node_ptr node = root;
+        while (node && k) {
+            int c = node_t::get_count(node->right);
+            if (k < c) {
+                node = node->right;
+            } else {
+                res += node_t::get_total(node->right);
+                if (k == c) break;
+                res += node->val;
+                node = node->left, k -= c + 1;
+            }
+        }
+        return res;
+    }
+  private:
+    node_ptr root;
+    constexpr T get_min_val(node_ptr node) const {
+        assert(node);
+        while (node->left) node = node->left;
+        return node->val;
+    }
+    constexpr node_ptr rotl(node_ptr node) {
+        assert(node);
+        node_ptr pivot = node->right;
+        assert(pivot);
+        node->right = pivot->left;
+        pivot->left = node;
+        node->update();
+        pivot->update();
+        return pivot;
+    }
+    constexpr node_ptr rotr(node_ptr node) {
+        assert(node);
+        node_ptr pivot = node->left;
+        assert(pivot);
+        node->left = pivot->right;
+        pivot->right = node;
+        node->update();
+        pivot->update();
+        return pivot;
+    }
+    constexpr node_ptr rotlr(node_ptr node) {
+        node->left = rotl(node->left);
+        node = rotr(node);
+        return node;
+    }
+    constexpr node_ptr rotrl(node_ptr node) {
+        node->right = rotr(node->right);
+        node = rotl(node);
+        return node;
+    }
+    constexpr node_ptr rotate(node_ptr node) {
+        int bf = node_type::get_balance_factor(node);
+        if (bf < -1) {
+            if (node_type::get_balance_factor(node->right) >= 1) node = rotrl(node);
+            else node = rotl(node);
+        } else if (bf > 1) {
+            if (node_type::get_balance_factor(node->left) <= -1) node = rotlr(node);
+            else node = rotr(node);
+        } else {
+            node->update();
+        }
+        return node;
+    }
+    constexpr node_ptr insert(node_ptr node, T val) {
+        if (node == nullptr) return new node_t(val);
+        if (val < node->val) node->left = insert(node->left, val);
+        else node->right = insert(node->right, val);
+        return rotate(node);
+    }
+    constexpr node_ptr erase(node_ptr node, T val) {
+        if (node == nullptr) return nullptr;
+        if (val < node->val) {
+            node->left = erase(node->left, val);
+        } else if (node->val < val) {
+            node->right = erase(node->right, val);
+        } else {
+            if (node->right == nullptr) return node->left;
+            else node->val = get_min_val(node->right), node->right = erase_min(node->right);
+        }
+        return rotate(node);
+    }
+    constexpr node_ptr erase_min(node_ptr node) {
+        if (node->left == nullptr) return node->right;
+        node->left = erase_min(node->left);
+        return rotate(node);
+    }
+};
 int main(void) {
     int n, m;
     cin >> n >> m;
@@ -157,9 +328,9 @@ int main(void) {
         v[t].emplace_back(x);
     }
     auto [a, b, c] = v;
-    maximum_sum<ll> ms(m);
+    ordered_set<ll> ms;
     for (auto x : a) ms.insert(x);
-    ll ans = ms.query();
+    ll ans = ms.maximum_sum(min(m, ms.size()));
     sort(all(c));
     reverse(all(c));
     priority_queue<ll> pq;
@@ -171,10 +342,9 @@ int main(void) {
             ms.insert(pq.top());
             pq.pop();
         }
-        ms.set_k(--m);
-        if (m == 0)
+        if (--m == 0)
             break;
-        chmax(ans, ms.query());
+        chmax(ans, ms.maximum_sum(min(m, ms.size())));
     }
     co(ans);
     return 0;

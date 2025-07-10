@@ -175,6 +175,38 @@ struct cumulative_sum_2d {
     std::vector<std::vector<T>> v;
     int n, m;
 };
+/// @brief Mex
+struct minimum_excluded {
+    minimum_excluded() : n(), _size(), exists(64), v() {}
+    constexpr int operator()() const noexcept { return n; }
+    constexpr int get() const noexcept { return n; }
+    void add(int x) {
+        if (x < 0) return;
+        ++_size;
+        if (_size == (int)exists.size()) {
+            exists.resize(_size << 1);
+            std::erase_if(v, [&](int y) {
+                if (y < (int)exists.size()) {
+                    if (exists[y]) --_size;
+                    else exists[y] = true;
+                    return true;
+                }
+                return false;
+            });
+        }
+        if (x < (int)exists.size()) {
+            if (exists[x]) --_size;
+            else exists[x] = true;
+        } else {
+            v.emplace_back(x);
+        }
+        while (exists[n]) ++n;
+    }
+  private:
+    int n, _size;
+    std::vector<bool> exists;
+    std::vector<int> v;
+};
 /// @brief フェニック木
 /// @see http://hos.ac/slides/20140319_bit.pdf
 template <class T>
@@ -361,6 +393,86 @@ struct Graph<void> {
     int _size;
     std::vector<std::vector<edge_type>> edges;
 };
+namespace internal {
+template <int Index>
+struct grid_impl {
+    template <class Head, class... Tail>
+    constexpr grid_impl(Head &&head, Tail &&...tail) : limit(head), impl(std::forward<Tail>(tail)...) {}
+    template <class Head, class... Tail>
+    constexpr bool in_field(Head x, Tail &&...tail) const {
+        return 0 <= x && x < limit && impl.in_field(std::forward<Tail>(tail)...);
+    }
+    template <class Head, class... Tail>
+    constexpr std::int64_t flatten(Head x, Tail &&...tail) const {
+        return x + limit * impl.flatten(std::forward<Tail>(tail)...);
+    }
+  private:
+    std::int64_t limit;
+    grid_impl<Index - 1> impl;
+};
+template <>
+struct grid_impl<0> {
+    constexpr grid_impl() {}
+    constexpr bool in_field() const { return true; }
+    constexpr std::int64_t flatten() const { return 0; }
+};
+}  // namespace internal
+template <int Index>
+struct Grid {
+    template <class... Args>
+    constexpr Grid(Args &&...args) : entity(std::forward<Args>(args)...) {
+        static_assert(sizeof...(Args) == Index);
+    }
+    template <class... Args>
+    constexpr bool in_field(Args &&...args) const {
+        static_assert(sizeof...(Args) == Index);
+        return entity.in_field(std::forward<Args>(args)...);
+    }
+    template <class... Args>
+    constexpr std::int64_t flatten(Args &&...args) const {
+        static_assert(sizeof...(Args) == Index);
+        return entity.flatten(std::forward<Args>(args)...);
+    }
+  private:
+    internal::grid_impl<Index> entity;
+};
+/// @brief なもりグラフ上のサイクル検出
+template <class T>
+std::vector<int> cycle_detection_on_namori_graph(const Graph<T> &g) {
+    int n = g.size();
+    std::vector<int> cnt(n);
+    std::stack<int> st;
+    for (int i = 0; i < n; ++i) {
+        cnt[i] = g[i].size();
+        if (cnt[i] == 1) st.emplace(i);
+    }
+    while (!st.empty()) {
+        int x = st.top();
+        st.pop();
+        for (auto &e : g[x]) {
+            if ((--cnt[e.to()]) == 1) st.emplace(e.to());
+        }
+    }
+    std::vector<int> parent(n, -2);
+    st = std::stack<int>();
+    for (int i = 0; i < n; ++i) {
+        if (cnt[i] >= 2) {
+            parent[i] = -1;
+            st.emplace(i);
+        }
+    }
+    while (!st.empty()) {
+        int x = st.top();
+        st.pop();
+        for (auto &e : g[x]) {
+            if (parent[e.to()] == -2) {
+                parent[e.to()] = x;
+                st.emplace(e.to());
+            }
+        }
+    }
+    return parent;
+}
 #include <concepts>
 #include <type_traits>
 namespace internal {
@@ -932,19 +1044,21 @@ using Mint = modint998;
 void solve() {
     int n;
     cin >> n;
-    vector<int> a(n);
-    cin >> a;
-    Mint sum = 0;
-    auto b = a;
-    b = compress(b);
-    fenwick_tree<ll> ft1(n), ft2(n);
+    Graph<void> g(n);
+    g.input_edges(n);
+    auto par = cycle_detection_on_namori_graph(g);
+    union_find uf(n);
     rep (i, n) {
-        int k = ft2.sum(b[i]);
-        sum += Mint(a[i]) * (k * 2 + 1);
-        sum += ft1.sum(b[i], n) * 2;
-        ft1.add(b[i], a[i]);
-        ft2.add(b[i], 1);
-        co(sum / (i + 1) / (i + 1));
+        if (par[i] != -1)
+            uf.unite(i, par[i]);
+    }
+    int q;
+    cin >> q;
+    while (q--) {
+        int u, v;
+        cin >> u >> v;
+        --u, --v;
+        Yes(uf.same(u, v));
     }
 }
 int main(void) {

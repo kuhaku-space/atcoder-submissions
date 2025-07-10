@@ -361,6 +361,49 @@ struct Graph<void> {
     int _size;
     std::vector<std::vector<edge_type>> edges;
 };
+namespace internal {
+template <int Index>
+struct grid_impl {
+    template <class Head, class... Tail>
+    constexpr grid_impl(Head &&head, Tail &&...tail) : limit(head), impl(std::forward<Tail>(tail)...) {}
+    template <class Head, class... Tail>
+    constexpr bool in_field(Head x, Tail &&...tail) const {
+        return 0 <= x && x < limit && impl.in_field(std::forward<Tail>(tail)...);
+    }
+    template <class Head, class... Tail>
+    constexpr std::int64_t flatten(Head x, Tail &&...tail) const {
+        return x + limit * impl.flatten(std::forward<Tail>(tail)...);
+    }
+  private:
+    std::int64_t limit;
+    grid_impl<Index - 1> impl;
+};
+template <>
+struct grid_impl<0> {
+    constexpr grid_impl() {}
+    constexpr bool in_field() const { return true; }
+    constexpr std::int64_t flatten() const { return 0; }
+};
+}  // namespace internal
+template <int Index>
+struct Grid {
+    template <class... Args>
+    constexpr Grid(Args &&...args) : entity(std::forward<Args>(args)...) {
+        static_assert(sizeof...(Args) == Index);
+    }
+    template <class... Args>
+    constexpr bool in_field(Args &&...args) const {
+        static_assert(sizeof...(Args) == Index);
+        return entity.in_field(std::forward<Args>(args)...);
+    }
+    template <class... Args>
+    constexpr std::int64_t flatten(Args &&...args) const {
+        static_assert(sizeof...(Args) == Index);
+        return entity.flatten(std::forward<Args>(args)...);
+    }
+  private:
+    internal::grid_impl<Index> entity;
+};
 #include <concepts>
 #include <type_traits>
 namespace internal {
@@ -930,22 +973,32 @@ struct union_find {
 };
 using Mint = modint998;
 void solve() {
-    int n;
-    cin >> n;
-    vector<int> a(n);
-    cin >> a;
-    Mint sum = 0;
-    auto b = a;
-    b = compress(b);
-    fenwick_tree<ll> ft1(n), ft2(n);
+    int n = 9;
+    vector<string> s(n);
+    cin >> s;
+    int ans = 0;
+    Grid<2> grid(n, n);
     rep (i, n) {
-        int k = ft2.sum(b[i]);
-        sum += Mint(a[i]) * (k * 2 + 1);
-        sum += ft1.sum(b[i], n) * 2;
-        ft1.add(b[i], a[i]);
-        ft2.add(b[i], 1);
-        co(sum / (i + 1) / (i + 1));
+        rep (j, n) {
+            rep (dx, n) {
+                rep (dy, n) {
+                    if (dy == 0)
+                        continue;
+                    int tx = dx, ty = dy;
+                    int x = i, y = j;
+                    bool f = true;
+                    rep (t, 4) {
+                        f &= grid.in_field(x, y) && s[x][y] == '#';
+                        x += tx, y += ty;
+                        swap(tx, ty);
+                        tx *= -1;
+                    }
+                    ans += f;
+                }
+            }
+        }
     }
+    co(ans);
 }
 int main(void) {
     int t = 1;
